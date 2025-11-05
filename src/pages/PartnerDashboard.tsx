@@ -16,7 +16,7 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
       label: 'Net Earnings', 
       value: 'KES 264,771', 
       icon: DollarSign, 
-      color: 'from-blue-500 to-blue-600', 
+      color: 'from-[#27aae2] to-[#1e8bb8]', 
       subtext: 'After 7% commission',
       change: '+15%',
       isPositive: true
@@ -25,7 +25,7 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
       label: 'Amount Withdrawn', 
       value: 'KES 180,000', 
       icon: ArrowDownRight, 
-      color: 'from-purple-500 to-purple-600', 
+      color: 'from-gray-700 to-gray-900', 
       subtext: 'Total withdrawn',
       change: '3 transactions',
       isPositive: false
@@ -153,17 +153,17 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
         )}
 
         {/* Sidebar */}
-        <aside className={`fixed lg:sticky top-0 left-0 z-50 h-screen w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 lg:transform-none ${
+        <aside className={`fixed lg:sticky top-0 left-0 z-50 h-screen w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-300 lg:transform-none ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}>
           <div className="h-full flex flex-col">
             {/* Sidebar Header */}
-            <div className="p-6 border-b border-gray-200">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">Partner Portal</h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Partner Portal</h2>
                 <button
                   onClick={() => setSidebarOpen(false)}
-                  className="lg:hidden text-gray-500 hover:text-gray-700"
+                  className="lg:hidden text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 >
                   <X className="w-6 h-6" />
                 </button>
@@ -184,8 +184,8 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
                         }}
                         className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium transition-all ${
                           activeTab === item.id
-                            ? 'bg-blue-600 text-white shadow-lg'
-                            : 'text-gray-700 hover:bg-gray-100'
+                            ? 'bg-[#27aae2] text-white shadow-lg'
+                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         <Icon className="w-5 h-5" />
@@ -202,19 +202,19 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
         {/* Main Content */}
         <main className="flex-1 overflow-x-hidden">
           {/* Top Bar */}
-          <div className="bg-white border-b border-gray-200 fixed top-0 right-0 left-0 lg:left-64 z-30 shadow-sm">
+          <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 fixed top-0 right-0 left-0 lg:left-64 z-30 shadow-sm">
             <div className="px-2 sm:px-4 lg:px-8 py-2 sm:py-3 md:py-4">
               <div className="flex items-center justify-between gap-2 sm:gap-4">
                 {/* Left Section - Menu & Title */}
                 <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
                   <button
                     onClick={() => setSidebarOpen(true)}
-                    className="lg:hidden text-gray-500 hover:text-gray-700"
+                    className="lg:hidden text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                   >
                     <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
                   </button>
                   <div className="hidden sm:block">
-                    <h1 className="text-base sm:text-lg md:text-xl font-bold text-gray-900">
+                    <h1 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white">
                       {menuItems.find(item => item.id === activeTab)?.label}
                     </h1>
                   </div>
@@ -229,7 +229,7 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
                       placeholder="Search events, attendees..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-9 md:pl-10 pr-3 md:pr-4 py-2 md:py-2.5 text-sm border border-gray-200 rounded-lg md:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full pl-9 md:pl-10 pr-3 md:pr-4 py-2 md:py-2.5 text-sm border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg md:rounded-xl focus:outline-none focus:ring-2 focus:ring-[#27aae2] focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -240,36 +240,36 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
                   <div className="relative">
                     <button
                       onClick={() => setAccountMenuOpen(!accountMenuOpen)}
-                      className="flex items-center space-x-2 sm:space-x-3 p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg sm:rounded-xl transition-colors"
+                      className="flex items-center space-x-2 sm:space-x-3 p-1.5 sm:p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg sm:rounded-xl transition-colors"
                     >
-                      <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center">
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 bg-gradient-to-br from-[#27aae2] to-[#1e8bb8] rounded-full flex items-center justify-center">
                         <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-white" />
                       </div>
                       <div className="hidden lg:block text-left">
-                        <p className="text-sm font-semibold text-gray-900">Tech Hub Africa</p>
-                        <p className="text-xs text-gray-500">Partner Account</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">Tech Hub Africa</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Partner Account</p>
                       </div>
                     </button>
 
                     {/* Dropdown Menu */}
                     {accountMenuOpen && (
-                      <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
-                        <div className="px-4 py-3 border-b border-gray-100">
-                          <p className="text-sm font-semibold text-gray-900">Tech Hub Africa</p>
-                          <p className="text-xs text-gray-500">partner@techhub.com</p>
+                      <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
+                        <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white">Tech Hub Africa</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">partner@techhub.com</p>
                         </div>
-                        <button className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-3">
+                        <button className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center space-x-3">
                           <User className="w-4 h-4" />
                           <span>My Profile</span>
                         </button>
-                        <button className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-3">
+                        <button className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center space-x-3">
                           <Settings className="w-4 h-4" />
                           <span>Settings</span>
                         </button>
-                        <div className="border-t border-gray-100 mt-2 pt-2">
+                        <div className="border-t border-gray-100 dark:border-gray-700 mt-2 pt-2">
                           <button 
                             onClick={() => onNavigate('landing')}
-                            className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-3"
+                            className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center space-x-3"
                           >
                             <LogOut className="w-4 h-4" />
                             <span>Log Out</span>
@@ -290,7 +290,7 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
                     placeholder="Search events..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27aae2] focus:border-transparent"
                   />
                 </div>
               </div>
@@ -308,7 +308,7 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
                     return (
                       <div
                         key={index}
-                        className="bg-white rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 shadow-sm hover:shadow-lg transition-all border border-gray-100"
+                        className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 shadow-sm hover:shadow-lg transition-all border border-gray-100 dark:border-gray-700"
                       >
                         <div className="flex items-center justify-between mb-1 sm:mb-2">
                           <div className={`w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 bg-gradient-to-br ${stat.color} rounded-lg flex items-center justify-center`}>
@@ -322,9 +322,9 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
                             </span>
                           )}
                         </div>
-                        <p className="text-gray-600 text-[10px] sm:text-xs mb-0.5">{stat.label}</p>
-                        <p className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-gray-900 mb-0.5">{stat.value}</p>
-                        <p className="text-[9px] sm:text-[10px] text-gray-500">{stat.subtext}</p>
+                        <p className="text-gray-600 dark:text-gray-400 text-[10px] sm:text-xs mb-0.5">{stat.label}</p>
+                        <p className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-gray-900 dark:text-white mb-0.5">{stat.value}</p>
+                        <p className="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400">{stat.subtext}</p>
                       </div>
                     );
                   })}
@@ -332,7 +332,7 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
 
                 {/* Withdraw & Statement Buttons */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                  <button className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg sm:rounded-xl p-3 sm:p-4 shadow-lg hover:shadow-xl transition-all">
+                  <button className="bg-gradient-to-r from-[#27aae2] to-[#1e8bb8] text-white rounded-lg sm:rounded-xl p-3 sm:p-4 shadow-lg hover:shadow-xl transition-all">
                     <div className="flex items-center justify-between">
                       <div className="text-left">
                         <h3 className="text-xs sm:text-sm md:text-base font-bold mb-0.5">Withdraw Funds</h3>
@@ -341,39 +341,39 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
                       <ArrowUpRight className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
                     </div>
                   </button>
-                  <button className="bg-white border-2 border-gray-200 rounded-lg sm:rounded-xl p-3 sm:p-4 shadow-sm hover:shadow-lg hover:border-blue-500 transition-all">
+                  <button className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg sm:rounded-xl p-3 sm:p-4 shadow-sm hover:shadow-lg hover:border-[#27aae2] transition-all">
                     <div className="flex items-center justify-between">
                       <div className="text-left">
-                        <h3 className="text-xs sm:text-sm md:text-base font-bold text-gray-900 mb-0.5">Download Statement</h3>
-                        <p className="text-gray-600 text-[10px] sm:text-xs">PDF or Excel format</p>
+                        <h3 className="text-xs sm:text-sm md:text-base font-bold text-gray-900 dark:text-white mb-0.5">Download Statement</h3>
+                        <p className="text-gray-600 dark:text-gray-400 text-[10px] sm:text-xs">PDF or Excel format</p>
                       </div>
-                      <Download className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-gray-700" />
+                      <Download className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-gray-700 dark:text-gray-300" />
                     </div>
                   </button>
                 </div>
 
                 {/* Recent Withdrawals */}
-                <div className="bg-white rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 shadow-sm border border-gray-100">
+                <div className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 shadow-sm border border-gray-100 dark:border-gray-700">
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
-                    <h3 className="text-sm sm:text-base md:text-lg font-bold text-gray-900">Recent Withdrawals</h3>
-                    <button className="text-blue-600 hover:text-blue-700 font-semibold text-[10px] sm:text-xs">View All</button>
+                    <h3 className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-white">Recent Withdrawals</h3>
+                    <button className="text-[#27aae2] hover:text-[#1e8bb8] font-semibold text-[10px] sm:text-xs">View All</button>
                   </div>
                   <div className="space-y-1.5 sm:space-y-2">
                     {withdrawals.map((withdrawal) => (
-                      <div key={withdrawal.id} className="flex items-center justify-between p-1.5 sm:p-2 md:p-3 bg-gray-50 rounded-lg">
+                      <div key={withdrawal.id} className="flex items-center justify-between p-1.5 sm:p-2 md:p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                         <div className="flex items-center space-x-1.5 sm:space-x-2 flex-1 min-w-0">
-                          <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <CreditCard className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-blue-600" />
+                          <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 bg-[#27aae2]/10 dark:bg-[#27aae2]/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <CreditCard className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-[#27aae2]" />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-gray-900 text-[10px] sm:text-xs truncate">{withdrawal.method}</p>
-                            <p className="text-[9px] sm:text-[10px] text-gray-600 truncate">
+                            <p className="font-semibold text-gray-900 dark:text-white text-[10px] sm:text-xs truncate">{withdrawal.method}</p>
+                            <p className="text-[9px] sm:text-[10px] text-gray-600 dark:text-gray-400 truncate">
                               {withdrawal.phone || withdrawal.account} • {withdrawal.date}
                             </p>
                           </div>
                         </div>
                         <div className="text-right flex-shrink-0 ml-1.5">
-                          <p className="font-bold text-gray-900 text-[10px] sm:text-xs md:text-sm">{withdrawal.amount}</p>
+                          <p className="font-bold text-gray-900 dark:text-white text-[10px] sm:text-xs md:text-sm">{withdrawal.amount}</p>
                           <span className="text-[8px] sm:text-[9px] px-1 sm:px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full font-semibold">
                             {withdrawal.status}
                           </span>
@@ -384,16 +384,16 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
                 </div>
 
                 {/* Current Events Slideshow */}
-                <div className="bg-white rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 shadow-sm border border-gray-100">
+                <div className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 shadow-sm border border-gray-100 dark:border-gray-700">
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
-                    <h3 className="text-sm sm:text-base md:text-lg font-bold text-gray-900">Current Events</h3>
+                    <h3 className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-white">Current Events</h3>
                     <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                     {currentEvents.map((event) => (
                       <div
                         key={event.id}
-                        className="group cursor-pointer bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-all"
+                        className="group cursor-pointer bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden hover:shadow-lg transition-all"
                       >
                         <div className="relative h-20 sm:h-24">
                           <img
@@ -406,24 +406,24 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
                           </div>
                         </div>
                         <div className="p-1.5 sm:p-2">
-                          <h4 className="font-bold text-gray-900 mb-0.5 line-clamp-1 text-[9px] sm:text-[10px]">{event.title}</h4>
-                          <p className="text-[8px] sm:text-[9px] text-gray-600 mb-1">{event.date}</p>
+                          <h4 className="font-bold text-gray-900 dark:text-white mb-0.5 line-clamp-1 text-[9px] sm:text-[10px]">{event.title}</h4>
+                          <p className="text-[8px] sm:text-[9px] text-gray-600 dark:text-gray-400 mb-1">{event.date}</p>
                           <div className="space-y-0.5">
                             <div className="flex items-center justify-between text-[8px] sm:text-[9px]">
-                              <span className="text-gray-600">Earnings</span>
+                              <span className="text-gray-600 dark:text-gray-400">Earnings</span>
                               <span className="font-bold text-green-600 text-[7px] sm:text-[8px]">{event.netEarnings}</span>
                             </div>
                             <div className="flex items-center justify-between text-[8px] sm:text-[9px]">
-                              <span className="text-gray-600">Attendees</span>
-                              <span className="font-semibold">{event.attendees}</span>
+                              <span className="text-gray-600 dark:text-gray-400">Attendees</span>
+                              <span className="font-semibold dark:text-white">{event.attendees}</span>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-0.5 sm:h-1">
+                            <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-0.5 sm:h-1">
                               <div
-                                className="bg-blue-600 h-0.5 sm:h-1 rounded-full"
+                                className="bg-[#27aae2] h-0.5 sm:h-1 rounded-full"
                                 style={{ width: `${(event.ticketsSold / event.totalTickets) * 100}%` }}
                               ></div>
                             </div>
-                            <p className="text-[7px] sm:text-[8px] text-gray-600 text-right">
+                            <p className="text-[7px] sm:text-[8px] text-gray-600 dark:text-gray-400 text-right">
                               {event.ticketsSold}/{event.totalTickets} sold
                             </p>
                           </div>
@@ -434,16 +434,16 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
                 </div>
 
                 {/* Events History Slideshow */}
-                <div className="bg-white rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 shadow-sm border border-gray-100">
+                <div className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 shadow-sm border border-gray-100 dark:border-gray-700">
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
-                    <h3 className="text-sm sm:text-base md:text-lg font-bold text-gray-900">Events History</h3>
+                    <h3 className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-white">Events History</h3>
                     <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                     {eventHistory.map((event) => (
                       <div
                         key={event.id}
-                        className="group cursor-pointer bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-all"
+                        className="group cursor-pointer bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden hover:shadow-lg transition-all"
                       >
                         <div className="relative h-20 sm:h-24">
                           <img
@@ -456,18 +456,18 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
                           </div>
                         </div>
                         <div className="p-1.5 sm:p-2">
-                          <h4 className="font-bold text-gray-900 mb-0.5 line-clamp-1 text-[9px] sm:text-[10px]">{event.title}</h4>
-                          <p className="text-[8px] sm:text-[9px] text-gray-600 mb-1">{event.date}</p>
+                          <h4 className="font-bold text-gray-900 dark:text-white mb-0.5 line-clamp-1 text-[9px] sm:text-[10px]">{event.title}</h4>
+                          <p className="text-[8px] sm:text-[9px] text-gray-600 dark:text-gray-400 mb-1">{event.date}</p>
                           <div className="space-y-0.5">
                             <div className="flex items-center justify-between text-[8px] sm:text-[9px]">
-                              <span className="text-gray-600">Earnings</span>
+                              <span className="text-gray-600 dark:text-gray-400">Earnings</span>
                               <span className="font-bold text-green-600 text-[7px] sm:text-[8px]">{event.netEarnings}</span>
                             </div>
                             <div className="flex items-center justify-between text-[8px] sm:text-[9px]">
-                              <span className="text-gray-600">Attendees</span>
-                              <span className="font-semibold">{event.attendees}</span>
+                              <span className="text-gray-600 dark:text-gray-400">Attendees</span>
+                              <span className="font-semibold dark:text-white">{event.attendees}</span>
                             </div>
-                            <button className="w-full py-0.5 sm:py-1 bg-blue-50 text-blue-600 rounded font-semibold hover:bg-blue-100 transition-colors text-[8px] sm:text-[9px]">
+                            <button className="w-full py-0.5 sm:py-1 bg-[#27aae2]/10 dark:bg-[#27aae2]/20 text-[#27aae2] rounded font-semibold hover:bg-[#27aae2]/20 dark:hover:bg-[#27aae2]/30 transition-colors text-[8px] sm:text-[9px]">
                               View
                             </button>
                           </div>
@@ -481,57 +481,57 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
 
             {activeTab === 'events' && (
               <div className="text-center py-8 sm:py-10 md:py-12">
-                <Calendar className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 mx-auto text-gray-400 mb-3 sm:mb-4" />
-                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1.5 sm:mb-2">Events Management</h3>
-                <p className="text-sm sm:text-base text-gray-600">Edit events, manage tickets, and update hosts</p>
+                <Calendar className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 mx-auto text-gray-400 dark:text-gray-500 mb-3 sm:mb-4" />
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-1.5 sm:mb-2">Events Management</h3>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Edit events, manage tickets, and update hosts</p>
               </div>
             )}
 
             {activeTab === 'attendees' && (
               <div className="text-center py-8 sm:py-10 md:py-12">
-                <Users className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 mx-auto text-gray-400 mb-3 sm:mb-4" />
-                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1.5 sm:mb-2">Attendees Demographics</h3>
-                <p className="text-sm sm:text-base text-gray-600">View attendee details and download reports</p>
+                <Users className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 mx-auto text-gray-400 dark:text-gray-500 mb-3 sm:mb-4" />
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-1.5 sm:mb-2">Attendees Demographics</h3>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">View attendee details and download reports</p>
               </div>
             )}
 
             {activeTab === 'boost' && (
               <div className="text-center py-8 sm:py-10 md:py-12">
-                <Zap className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 mx-auto text-gray-400 mb-3 sm:mb-4" />
-                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1.5 sm:mb-2">Boost Your Events</h3>
-                <p className="text-sm sm:text-base text-gray-600">Increase visibility and reach more attendees</p>
+                <Zap className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 mx-auto text-gray-400 dark:text-gray-500 mb-3 sm:mb-4" />
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-1.5 sm:mb-2">Boost Your Events</h3>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Increase visibility and reach more attendees</p>
               </div>
             )}
 
             {activeTab === 'notifications' && (
               <div className="text-center py-8 sm:py-10 md:py-12">
-                <Bell className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 mx-auto text-gray-400 mb-3 sm:mb-4" />
-                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1.5 sm:mb-2">Notification Settings</h3>
-                <p className="text-sm sm:text-base text-gray-600">Manage your notification preferences</p>
+                <Bell className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 mx-auto text-gray-400 dark:text-gray-500 mb-3 sm:mb-4" />
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-1.5 sm:mb-2">Notification Settings</h3>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Manage your notification preferences</p>
               </div>
             )}
 
             {activeTab === 'roles' && (
               <div className="text-center py-8 sm:py-10 md:py-12">
-                <UserPlus className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 mx-auto text-gray-400 mb-3 sm:mb-4" />
-                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1.5 sm:mb-2">Assign Roles</h3>
-                <p className="text-sm sm:text-base text-gray-600">Manage team members and promotional agents</p>
+                <UserPlus className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 mx-auto text-gray-400 dark:text-gray-500 mb-3 sm:mb-4" />
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-1.5 sm:mb-2">Assign Roles</h3>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Manage team members and promotional agents</p>
               </div>
             )}
 
             {activeTab === 'scanner' && (
               <div className="text-center py-8 sm:py-10 md:py-12">
-                <QrCode className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 mx-auto text-gray-400 mb-3 sm:mb-4" />
-                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1.5 sm:mb-2">Scan Tickets</h3>
-                <p className="text-sm sm:text-base text-gray-600">Verify attendee tickets at your events</p>
+                <QrCode className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 mx-auto text-gray-400 dark:text-gray-500 mb-3 sm:mb-4" />
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-1.5 sm:mb-2">Scan Tickets</h3>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Verify attendee tickets at your events</p>
               </div>
             )}
 
             {activeTab === 'verification' && (
               <div className="text-center py-8 sm:py-10 md:py-12">
-                <Award className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 mx-auto text-gray-400 mb-3 sm:mb-4" />
-                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1.5 sm:mb-2">Partner Verification</h3>
-                <p className="text-sm sm:text-base text-gray-600">Track your progress to become NIKO VERIFIED</p>
+                <Award className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 mx-auto text-gray-400 dark:text-gray-500 mb-3 sm:mb-4" />
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-1.5 sm:mb-2">Partner Verification</h3>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Track your progress to become NIKO VERIFIED</p>
               </div>
             )}
           </div>

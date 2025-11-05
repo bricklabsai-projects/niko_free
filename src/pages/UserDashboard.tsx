@@ -120,33 +120,33 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
       
       <div className="relative z-10">
       {/* Top Navigation */}
-      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+      <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             {/* Left - Logo */}
             <div className="flex items-center space-x-4">
-              <h1 className="text-xl font-bold text-gray-900">Niko Free</h1>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white">Niko Free</h1>
             </div>
 
             {/* Right - Notifications, Messages, Account */}
             <div className="flex items-center space-x-3">
               {/* Notifications */}
-              <button className="relative p-2.5 text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
+              <button className="relative p-2.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">
                 <Bell className="w-5 h-5" />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
 
               {/* Messages */}
-              <button className="relative p-2.5 text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
+              <button className="relative p-2.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">
                 <MessageCircle className="w-5 h-5" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-500 rounded-full"></span>
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#27aae2] rounded-full"></span>
               </button>
 
               {/* Account Menu */}
               <div className="relative">
                 <button
                   onClick={() => setAccountMenuOpen(!accountMenuOpen)}
-                  className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-xl transition-colors"
+                  className="flex items-center space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
                 >
                   <img
                     src={userProfile.avatar}
@@ -154,22 +154,22 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
                     className="w-9 h-9 rounded-full object-cover"
                   />
                   <div className="hidden sm:block text-left">
-                    <p className="text-sm font-semibold text-gray-900">{userProfile.name}</p>
-                    <p className="text-xs text-gray-500">Member</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{userProfile.name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Member</p>
                   </div>
                 </button>
 
                 {/* Account Dropdown */}
                 {accountMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
-                    <div className="px-4 py-3 border-b border-gray-100">
-                      <p className="text-sm font-semibold text-gray-900">{userProfile.name}</p>
-                      <p className="text-xs text-gray-500">Joined {userProfile.joinDate}</p>
+                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
+                    <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{userProfile.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Joined {userProfile.joinDate}</p>
                     </div>
-                    <button className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50">
+                    <button className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
                       My Profile
                     </button>
-                    <button className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50">
+                    <button className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
                       Settings
                     </button>
                     <div className="border-t border-gray-100 mt-2 pt-2">
@@ -193,28 +193,28 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left Column - Profile & Stats */}
           <aside className="lg:col-span-3">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sticky top-24">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 sticky top-24">
               {/* Profile Section */}
               <div className="text-center mb-6">
                 <img
                   src={userProfile.avatar}
                   alt={userProfile.name}
-                  className="w-24 h-24 rounded-full object-cover mx-auto mb-3 border-4 border-blue-100"
+                  className="w-24 h-24 rounded-full object-cover mx-auto mb-3 border-4 border-[#27aae2]/20"
                 />
-                <h2 className="text-xl font-bold text-gray-900 mb-1">{userProfile.name}</h2>
-                <p className="text-sm text-gray-500">Joined {userProfile.joinDate}</p>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{userProfile.name}</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Joined {userProfile.joinDate}</p>
               </div>
 
               {/* User Stats */}
               <div className="space-y-3 mb-6">
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4">
+                <div className="bg-gradient-to-br from-[#27aae2]/10 to-[#27aae2]/20 rounded-xl p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <div className="w-10 h-10 bg-[#27aae2] rounded-lg flex items-center justify-center">
                       <Calendar className="w-5 h-5 text-white" />
                     </div>
-                    <span className="text-2xl font-bold text-blue-900">{userProfile.eventsAttended}</span>
+                    <span className="text-2xl font-bold text-gray-900 dark:text-white">{userProfile.eventsAttended}</span>
                   </div>
-                  <p className="text-xs font-semibold text-blue-900 mb-3">Your Events</p>
+                  <p className="text-xs font-semibold text-gray-900 dark:text-white mb-3">Your Events</p>
                   
                   {/* Tabs */}
                   <div className="flex gap-2 mb-3">
@@ -222,8 +222,8 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
                       onClick={() => setActiveEventsTab('going')}
                       className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1 ${
                         activeEventsTab === 'going'
-                          ? 'bg-blue-600 text-white shadow-sm'
-                          : 'bg-white/50 text-blue-700 hover:bg-white/80'
+                          ? 'bg-[#27aae2] text-white shadow-sm'
+                          : 'bg-white/50 text-[#27aae2] hover:bg-white/80'
                       }`}
                     >
                       <Check className="w-3.5 h-3.5" />
@@ -233,8 +233,8 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
                       onClick={() => setActiveEventsTab('saved')}
                       className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1 ${
                         activeEventsTab === 'saved'
-                          ? 'bg-blue-600 text-white shadow-sm'
-                          : 'bg-white/50 text-blue-700 hover:bg-white/80'
+                          ? 'bg-[#27aae2] text-white shadow-sm'
+                          : 'bg-white/50 text-[#27aae2] hover:bg-white/80'
                       }`}
                     >
                       <Bookmark className="w-3.5 h-3.5" />
@@ -254,8 +254,8 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
                               className="w-10 h-10 rounded object-cover"
                             />
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-semibold text-blue-900 truncate">{event.title}</p>
-                              <p className="text-xs text-blue-700">{event.date}</p>
+                              <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{event.title}</p>
+                              <p className="text-xs text-gray-700 dark:text-gray-300">{event.date}</p>
                             </div>
                           </div>
                         </div>
@@ -270,8 +270,8 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
                               className="w-10 h-10 rounded object-cover"
                             />
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-semibold text-blue-900 truncate">{event.title}</p>
-                              <p className="text-xs text-blue-700">{event.price}</p>
+                              <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{event.title}</p>
+                              <p className="text-xs text-gray-700 dark:text-gray-300">{event.price}</p>
                             </div>
                           </div>
                         </div>
@@ -280,17 +280,17 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4">
+                <div className="bg-gradient-to-br from-gray-800/10 to-gray-900/10 dark:from-gray-700/20 dark:to-gray-600/20 rounded-xl p-4">
                   <div className="flex items-center justify-between mb-1">
-                    <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+                    <div className="w-10 h-10 bg-gray-900 dark:bg-gray-700 rounded-lg flex items-center justify-center">
                       <Users className="w-5 h-5 text-white" />
                     </div>
-                    <span className="text-2xl font-bold text-purple-900">{userProfile.groupsJoined}</span>
+                    <span className="text-2xl font-bold text-gray-900 dark:text-white">{userProfile.groupsJoined}</span>
                   </div>
-                  <p className="text-xs font-semibold text-purple-900 mb-3">Groups Joined</p>
+                  <p className="text-xs font-semibold text-gray-900 dark:text-white mb-3">Groups Joined</p>
                   
                   {/* See All Groups Button */}
-                  <button className="w-full py-2 bg-white/50 hover:bg-white text-purple-700 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1">
+                  <button className="w-full py-2 bg-white/50 hover:bg-white dark:bg-gray-700/50 dark:hover:bg-gray-700 text-gray-900 dark:text-white rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1">
                     <span>See All Groups</span>
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -301,10 +301,10 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
 
               {/* Quick Actions */}
               <div className="space-y-2">
-                <button className="w-full py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors">
+                <button className="w-full py-2.5 bg-[#27aae2] text-white rounded-xl text-sm font-semibold hover:bg-[#1e8bb8] transition-colors">
                   Browse Events
                 </button>
-                <button className="w-full py-2.5 border-2 border-gray-200 text-gray-700 rounded-xl text-sm font-semibold hover:border-blue-500 hover:text-blue-600 transition-all">
+                <button className="w-full py-2.5 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-semibold hover:border-[#27aae2] hover:text-[#27aae2] transition-all">
                   My Tickets
                 </button>
               </div>
@@ -316,14 +316,14 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
           {/* Events Booked Section */}
           <section className="mb-12">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Events Booked</h2>
-              <button className="text-blue-600 hover:text-blue-700 font-semibold text-sm">View All</button>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Events Booked</h2>
+              <button className="text-[#27aae2] hover:text-[#1e8bb8] font-semibold text-sm">View All</button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {upcomingEvents.map((event) => (
                 <div
                   key={event.id}
-                  className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all border border-gray-100"
+                  className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all border border-gray-100 dark:border-gray-700"
                 >
                   <div className="relative h-36">
                     <img
@@ -336,18 +336,18 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
                     </div>
                   </div>
                   <div className="p-4">
-                    <h3 className="font-bold text-gray-900 mb-2 line-clamp-1 text-sm">{event.title}</h3>
-                    <div className="space-y-1.5 text-xs text-gray-600 mb-3">
+                    <h3 className="font-bold text-gray-900 dark:text-white mb-2 line-clamp-1 text-sm">{event.title}</h3>
+                    <div className="space-y-1.5 text-xs text-gray-600 dark:text-gray-300 mb-3">
                       <div className="flex items-center space-x-2">
-                        <Calendar className="w-3.5 h-3.5 text-blue-600" />
+                        <Calendar className="w-3.5 h-3.5 text-[#27aae2]" />
                         <span>{event.date} • {event.time}</span>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <QrCode className="w-3.5 h-3.5 text-blue-600" />
+                        <QrCode className="w-3.5 h-3.5 text-[#27aae2]" />
                         <span className="font-mono text-xs">{event.ticketId}</span>
                       </div>
                     </div>
-                    <button className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
+                    <button className="w-full py-2 bg-[#27aae2] text-white rounded-lg text-sm font-semibold hover:bg-[#1e8bb8] transition-colors">
                       View Ticket
                     </button>
                   </div>
@@ -359,14 +359,14 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
           {/* Bucket List Section */}
           <section className="mb-12">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Bucket List</h2>
-              <button className="text-blue-600 hover:text-blue-700 font-semibold text-sm">View All</button>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Bucket List</h2>
+              <button className="text-[#27aae2] hover:text-[#1e8bb8] font-semibold text-sm">View All</button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {bucketlistEvents.map((event) => (
                 <div
                   key={event.id}
-                  className={`bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all border border-gray-100 ${
+                  className={`bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all border border-gray-100 dark:border-gray-700 ${
                     event.isOutdated ? 'opacity-75' : ''
                   }`}
                 >
@@ -381,20 +381,20 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
                         PAST EVENT
                       </div>
                     )}
-                    <button className="absolute top-2 left-2 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform">
+                    <button className="absolute top-2 left-2 w-8 h-8 bg-white dark:bg-gray-700 rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform">
                       <Heart className="w-4 h-4 text-red-500 fill-red-500" />
                     </button>
                   </div>
                   <div className="p-4">
-                    <h3 className="font-bold text-gray-900 mb-2 line-clamp-1 text-sm">{event.title}</h3>
-                    <p className="text-xs text-gray-600 mb-3">{event.date}</p>
+                    <h3 className="font-bold text-gray-900 dark:text-white mb-2 line-clamp-1 text-sm">{event.title}</h3>
+                    <p className="text-xs text-gray-600 dark:text-gray-300 mb-3">{event.date}</p>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-blue-600">{event.price}</span>
+                      <span className="text-sm font-bold text-[#27aae2]">{event.price}</span>
                       <button 
                         className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
                           event.isOutdated
-                            ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                            ? 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-400 cursor-not-allowed'
+                            : 'bg-[#27aae2] text-white hover:bg-[#1e8bb8]'
                         }`}
                         disabled={event.isOutdated}
                       >
@@ -410,14 +410,14 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
           {/* Event History Section */}
           <section>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Event History</h2>
-              <button className="text-blue-600 hover:text-blue-700 font-semibold text-sm">View All</button>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Event History</h2>
+              <button className="text-[#27aae2] hover:text-[#1e8bb8] font-semibold text-sm">View All</button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {eventHistory.map((event) => (
                 <div
                   key={event.id}
-                  className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all border border-gray-100"
+                  className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all border border-gray-100 dark:border-gray-700"
                 >
                   <div className="relative h-36">
                     <img
@@ -430,8 +430,8 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
                     </div>
                   </div>
                   <div className="p-4">
-                    <h3 className="font-bold text-gray-900 mb-2 line-clamp-1 text-sm">{event.title}</h3>
-                    <p className="text-xs text-gray-600 mb-2">{event.date}</p>
+                    <h3 className="font-bold text-gray-900 dark:text-white mb-2 line-clamp-1 text-sm">{event.title}</h3>
+                    <p className="text-xs text-gray-600 dark:text-gray-300 mb-2">{event.date}</p>
                     <div className="flex items-center space-x-0.5 mb-3">
                       {[...Array(5)].map((_, i) => (
                         <svg
@@ -443,7 +443,7 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
                         </svg>
                       ))}
                     </div>
-                    <button className="w-full py-2 border-2 border-gray-200 text-gray-700 rounded-lg text-sm font-semibold hover:border-blue-500 hover:text-blue-600 transition-all flex items-center justify-center space-x-2">
+                    <button className="w-full py-2 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-semibold hover:border-[#27aae2] hover:text-[#27aae2] transition-all flex items-center justify-center space-x-2">
                       <Download className="w-3.5 h-3.5" />
                       <span>Download Receipt</span>
                     </button>
