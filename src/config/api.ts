@@ -4,9 +4,9 @@
  */
 
 // Base URL for the API - use environment variable or default to localhost for development
-export const API_BASE_URL = "https://nikofree-arhecnfueegrasf8.canadacentral-01.azurewebsites.net";
+// export const API_BASE_URL = "https://nikofree-arhecnfueegrasf8.canadacentral-01.azurewebsites.net";
 
-// export const API_BASE_URL = "http://localhost:8000";
+export const API_BASE_URL = "http://localhost:8000";
 
 // API Endpoints
 export const API_ENDPOINTS = {

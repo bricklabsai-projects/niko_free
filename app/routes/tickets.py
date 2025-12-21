@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app
-from datetime import datetime
-from app import db
+from datetime import datetime, timedelta
+from app import db, limiter
 from app.models.event import Event
 from app.models.ticket import TicketType, Booking, Ticket, PromoCode
 from app.models.payment import Payment
@@ -146,6 +146,11 @@ def book_event(current_user):
     platform_fee = final_amount * commission_rate
     partner_amount = final_amount - platform_fee
     
+    # Create booking with 5-minute reservation timer for paid events
+    reserved_until = None
+    if not event.is_free:
+        reserved_until = datetime.utcnow() + timedelta(minutes=5)
+    
     # Create booking
     booking = Booking(
         user_id=current_user.id,
@@ -157,7 +162,8 @@ def book_event(current_user):
         discount_amount=discount_amount,
         promo_code_id=promo_code.id if promo_code else None,
         status='pending',
-        payment_status='unpaid' if not event.is_free else 'paid'
+        payment_status='unpaid' if not event.is_free else 'paid',
+        reserved_until=reserved_until
     )
     
     db.session.add(booking)
@@ -403,4 +409,44 @@ def scan_ticket(current_partner):
         'ticket': ticket.to_dict(),
         'attendee': ticket.booking.user.to_dict()
     }), 200
+
+
+@bp.route('/release-expired', methods=['POST'])
+@limiter.exempt
+def release_expired_bookings():
+    """Release expired pending bookings (called by background task or frontend)"""
+    try:
+        # Find all pending bookings that have expired (reserved_until < now)
+        expired_bookings = Booking.query.filter(
+            Booking.status == 'pending',
+            Booking.payment_status == 'unpaid',
+            Booking.reserved_until.isnot(None),
+            Booking.reserved_until < datetime.utcnow()
+        ).all()
+        
+        released_count = 0
+        for booking in expired_bookings:
+            # Cancel the expired booking
+            booking.status = 'cancelled'
+            booking.cancelled_at = datetime.utcnow()
+            
+            # Restore promo code usage if applicable
+            if booking.promo_code:
+                booking.promo_code.current_uses = max(0, booking.promo_code.current_uses - 1)
+            
+            released_count += 1
+        
+        if released_count > 0:
+            db.session.commit()
+            current_app.logger.info(f'Released {released_count} expired bookings')
+        
+        return jsonify({
+            'message': f'Released {released_count} expired booking(s)',
+            'released_count': released_count
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Error releasing expired bookings: {str(e)}')
+        return jsonify({'error': 'Failed to release expired bookings'}), 500
 

@@ -66,7 +66,7 @@ export const uploadProfilePicture = async (file: File): Promise<any> => {
 /**
  * Get user bookings
  */
-export const getUserBookings = async (status?: 'upcoming' | 'past' | 'cancelled'): Promise<any> => {
+export const getUserBookings = async (status?: 'upcoming' | 'past' | 'cancelled' | 'pending'): Promise<any> => {
   const url = new URL(`${API_BASE_URL}${API_ENDPOINTS.users.bookings}`);
   if (status) {
     url.searchParams.append('status', status);

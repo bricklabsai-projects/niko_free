@@ -1,11 +1,12 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 from datetime import datetime
-from sqlalchemy import or_
+from sqlalchemy import or_, exists
 from app import db
 from app.models.user import User
 from app.models.event import Event
 from app.models.booking import Booking
+from app.models.ticket import Ticket
 from app.models.notification import Notification
 from app.utils.decorators import user_required
 from app.utils.file_upload import upload_file
@@ -104,16 +105,42 @@ def get_bookings(current_user):
     
     # Filter by status
     if status == 'upcoming':
+        # Only return confirmed bookings with tickets (payment completed)
+        # This ensures MyTickets only shows tickets that have been paid for
         query = query.join(Event).filter(
             Event.start_date > datetime.utcnow(),
-            Booking.status == 'confirmed'
+            Booking.status == 'confirmed',
+            Booking.payment_status == 'paid',
+            # Ensure booking has tickets (tickets are only created after payment)
+            exists().where(Ticket.booking_id == Booking.id)
         )
     elif status == 'past':
+        # Only show past events that were paid and confirmed (have tickets)
         query = query.join(Event).filter(
-            Event.start_date <= datetime.utcnow()
+            Event.start_date <= datetime.utcnow(),
+            Booking.status == 'confirmed',
+            Booking.payment_status == 'paid',
+            # Ensure booking has tickets
+            exists().where(Ticket.booking_id == Booking.id)
         )
     elif status == 'cancelled':
         query = query.filter(Booking.status == 'cancelled')
+    elif status == 'pending':
+        # Pending bookings are unpaid or failed bookings that haven't been cancelled
+        # Include both 'unpaid' and 'failed' payment statuses since failed payments
+        # are still pending and can be retried
+        query = query.filter(
+            Booking.status == 'pending',
+            Booking.payment_status.in_(['unpaid', 'failed'])
+        )
+    else:
+        # No status filter (status == 'all' or undefined) - only show paid confirmed bookings with tickets
+        # This prevents unpaid tickets from showing in "My Tickets"
+        query = query.filter(
+            Booking.status == 'confirmed',
+            Booking.payment_status == 'paid',
+            exists().where(Ticket.booking_id == Booking.id)
+        )
     
     # Order by date
     query = query.order_by(Booking.created_at.desc())

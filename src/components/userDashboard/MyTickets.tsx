@@ -43,7 +43,21 @@ export default function MyTickets() {
       const response = await getUserBookings(status);
       
       // Transform API data to component format
-      const formattedTickets: TicketData[] = (response.bookings || []).map((booking: any) => {
+      // Only show bookings that have tickets (payment completed)
+      // This ensures users can't download tickets before payment
+      // IMPORTANT: Filter out ALL unpaid/pending bookings regardless of status filter
+      const formattedTickets: TicketData[] = (response.bookings || [])
+        .filter((booking: any) => {
+          // Only show confirmed bookings with tickets that have been paid
+          // This prevents showing unpaid tickets in "My Tickets"
+          const hasTickets = booking.tickets && Array.isArray(booking.tickets) && booking.tickets.length > 0;
+          const isConfirmed = booking.status === 'confirmed';
+          const isPaid = booking.payment_status === 'paid';
+          
+          // Must have all three: confirmed status, paid status, and actual tickets
+          return isConfirmed && isPaid && hasTickets;
+        })
+        .map((booking: any) => {
         const event = booking.event || {};
         const firstTicket = booking.tickets?.[0] || {};
         const ticketType = firstTicket.ticket_type || {};

@@ -2,6 +2,7 @@ from flask import current_app, render_template_string
 from flask_mail import Message
 from app import mail
 from threading import Thread
+from datetime import datetime
 
 
 def send_async_email(app, msg):
@@ -196,4 +197,82 @@ def send_event_approval_email(event, approved=True):
         """
     
     send_email(subject, partner.email, html_body)
+
+
+def send_booking_cancellation_email(user, booking, event):
+    """Send booking cancellation email to user with logo and colors"""
+    subject = f"Booking Cancelled: {event.title}"
+    base_url = current_app.config.get('BASE_URL', 'https://niko-free.com')
+    frontend_url = current_app.config.get('FRONTEND_URL', base_url)
+    
+    # Company colors
+    COMPANY_BLUE = "#27aae2"
+    COMPANY_BLUE_DARK = "#1e8bb8"
+    COMPANY_WHITE = "#ffffff"
+    COMPANY_BG_LIGHT = "#f5f5f5"
+    
+    html_body = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: {COMPANY_BG_LIGHT};">
+        <div style="max-width: 600px; margin: 0 auto; background-color: {COMPANY_WHITE}; padding: 0;">
+            <!-- Header with Logo and Colors -->
+            <div style="background: linear-gradient(135deg, {COMPANY_BLUE} 0%, {COMPANY_BLUE_DARK} 100%); padding: 40px 30px; text-align: center;">
+                <div style="margin-bottom: 20px;">
+                    <div style="font-size: 32px; font-weight: bold; color: {COMPANY_WHITE}; letter-spacing: 2px;">NIKO FREE</div>
+                </div>
+                <h1 style="color: {COMPANY_WHITE}; margin: 0; font-size: 28px; font-weight: bold;">📝 Booking Cancelled</h1>
+            </div>
+            
+            <!-- Content -->
+            <div style="padding: 40px 30px;">
+                <p style="font-size: 16px; color: #333; margin: 0 0 20px 0;">Hi <strong>{user.first_name}</strong>,</p>
+                <p style="font-size: 16px; color: #555; margin: 0 0 30px 0;">Your booking for <strong>{event.title}</strong> has been cancelled.</p>
+                
+                <div style="background-color: #fff3e0; border-left: 4px solid #ff9800; padding: 20px; margin: 30px 0; border-radius: 4px;">
+                    <h3 style="margin: 0 0 15px 0; color: #e65100; font-size: 18px;">📋 Booking Details</h3>
+                    <p style="margin: 5px 0; color: #333;"><strong>Booking Number:</strong> {booking.booking_number}</p>
+                    <p style="margin: 5px 0; color: #333;"><strong>Event:</strong> {event.title}</p>
+                    <p style="margin: 5px 0; color: #333;"><strong>Date:</strong> {event.start_date.strftime('%B %d, %Y at %I:%M %p') if event.start_date else 'N/A'}</p>
+                    <p style="margin: 5px 0; color: #333;"><strong>Quantity:</strong> {booking.quantity} ticket(s)</p>
+                    <p style="margin: 5px 0; color: #333;"><strong>Amount:</strong> KES {float(booking.total_amount):,.2f}</p>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 25px; border-radius: 8px; margin: 30px 0;">
+                    <h3 style="margin: 0 0 15px 0; color: {COMPANY_BLUE_DARK}; font-size: 18px;">✨ Explore Other Events</h3>
+                    <p style="margin: 0; color: #555; font-size: 14px;">
+                        Don't miss out! Discover amazing events happening near you. Browse our collection of exciting experiences and find your next adventure.
+                    </p>
+                </div>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{frontend_url}/events" 
+                       style="display: inline-block; padding: 14px 35px; background: linear-gradient(135deg, {COMPANY_BLUE} 0%, {COMPANY_BLUE_DARK} 100%); 
+                              color: {COMPANY_WHITE}; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(39, 170, 226, 0.3);">
+                        Explore Events
+                    </a>
+                </div>
+                
+                <div style="text-align: center; margin-top: 40px; padding-top: 30px; border-top: 1px solid #e5e5e5;">
+                    <p style="font-size: 14px; color: #999; margin: 0;">
+                        Questions? Contact us at <a href="mailto:support@niko-free.com" style="color: {COMPANY_BLUE}; text-decoration: none;">support@niko-free.com</a>
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e5e5e5;">
+                <p style="font-size: 12px; color: #999; margin: 0;">
+                    © {datetime.now().year} Niko Free. All rights reserved.
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    send_email(subject, user.email, html_body)
 

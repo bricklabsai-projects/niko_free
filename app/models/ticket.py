@@ -114,6 +114,7 @@ class Booking(db.Model):
             'checked_in_at': self.checked_in_at.isoformat() if self.checked_in_at else None,
             'created_at': self.created_at.isoformat(),
             'confirmed_at': self.confirmed_at.isoformat() if self.confirmed_at else None,
+            'reserved_until': self.reserved_until.isoformat() if self.reserved_until else None,
             'tickets': [ticket.to_dict() for ticket in self.tickets]
         }
 
