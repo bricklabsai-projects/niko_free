@@ -1,131 +1,31 @@
-import { Calendar, MapPin, Users, Clock, ExternalLink, ChevronLeft, Heart, CheckCircle2, AlertCircle, CreditCard } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Tag, ExternalLink, ChevronLeft } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import LoginModal from '../components/LoginModal';
 import TicketSelector from '../components/TicketSelector';
 import EventActions from '../components/EventActions';
-import PaymentModal from '../components/PaymentModal';
-import SEO from '../components/SEO';
 import { getEventDetails } from '../services/eventService';
-import { bookTicket, initiatePayment } from '../services/paymentService';
-import { addToBucketlist, removeFromBucketlist } from '../services/userService';
-import { useAuth } from '../contexts/AuthContext';
-import { API_BASE_URL, getImageUrl } from '../config/api';
-import { getToken, getAuthHeaders } from '../services/authService';
+import { API_BASE_URL } from '../config/api';
 
 interface EventDetailPageProps {
   eventId: string;
-  onNavigate: (page: string, params?: any) => void;
+  onNavigate: (page: string) => void;
 }
 
 export default function EventDetailPage({ eventId, onNavigate }: EventDetailPageProps) {
-  const { isAuthenticated } = useAuth();
-  const [searchParams] = useSearchParams();
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedTicketType, setSelectedTicketType] = useState<string>('');
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
   const [copyLinkText, setCopyLinkText] = useState('Copy Link');
   const [eventData, setEventData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isBooking, setIsBooking] = useState(false);
-  const [bookingData, setBookingData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [inBucketlist, setInBucketlist] = useState(false);
-  const [isTogglingWishlist, setIsTogglingWishlist] = useState(false);
-  const [promoCode, setPromoCode] = useState('');
-  const [promoCodeError, setPromoCodeError] = useState('');
-  const [isValidatingPromo, setIsValidatingPromo] = useState(false);
-  const [validatedPromoCode, setValidatedPromoCode] = useState<{ discount_type: string; discount_value: number } | null>(null);
-  const [reviews, setReviews] = useState<any[]>([]);
-  const [averageRating, setAverageRating] = useState(0);
-  const [totalReviews, setTotalReviews] = useState(0);
-  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
-  const [pendingBookingId, setPendingBookingId] = useState<number | null>(null);
-  const [hasExistingBooking, setHasExistingBooking] = useState(false);
-  const [showBuyMorePrompt, setShowBuyMorePrompt] = useState(false);
-
-  // Validate promo code
-  const handleValidatePromo = async () => {
-    if (!promoCode.trim()) {
-      setPromoCodeError('Please enter a promo code');
-      return;
-    }
-
-    if (!isAuthenticated) {
-      setShowLoginModal(true);
-      return;
-    }
-
-    setIsValidatingPromo(true);
-    setPromoCodeError('');
-
-    try {
-      const token = getToken();
-      const parsedEventId = parseInt(eventId);
-      
-      if (isNaN(parsedEventId) || parsedEventId <= 0) {
-        setPromoCodeError('Invalid event ID');
-        setIsValidatingPromo(false);
-        return;
-      }
-      
-      const requestBody = {
-        code: promoCode.trim().toUpperCase(),
-        event_id: parsedEventId
-      };
-      
-      console.log('Validating promo code:', requestBody); // Debug log
-      
-      const response = await fetch(`${API_BASE_URL}/api/tickets/validate-promo`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      const data = await response.json();
-      
-      console.log('Promo validation response:', { status: response.status, data }); // Debug log
-
-      if (response.ok && data.valid) {
-        setPromoCodeError('');
-        // Store validated promo code data for discount calculation
-        if (data.promo_code) {
-          setValidatedPromoCode({
-            discount_type: data.promo_code.discount_type,
-            discount_value: data.promo_code.discount_value
-          });
-        }
-      } else {
-        setPromoCodeError(data.error || 'Invalid promo code');
-        setValidatedPromoCode(null);
-      }
-    } catch (err: any) {
-      console.error('Error validating promo code:', err);
-      setPromoCodeError('Failed to validate promo code. Please try again.');
-    } finally {
-      setIsValidatingPromo(false);
-    }
-  };
 
   // Fetch event details from API
   useEffect(() => {
     const fetchEvent = async () => {
-      // Validate eventId - only check if it's empty or not a valid number
-      if (!eventId || eventId.trim() === '' || isNaN(parseInt(eventId))) {
-        setError('Invalid event ID');
-        setIsLoading(false);
-        return;
-      }
-
-      const parsedEventId = parseInt(eventId);
-      if (parsedEventId <= 0) {
+      if (!eventId || eventId === '1') {
         setError('Invalid event ID');
         setIsLoading(false);
         return;
@@ -134,28 +34,11 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
       try {
         setIsLoading(true);
         setError(null);
-        const data = await getEventDetails(parsedEventId);
-        if (data && data.id) {
-          setEventData(data);
-          // Check if event is in bucketlist
-          setInBucketlist(data.in_bucketlist || false);
-        } else {
-          setError('Event not found or invalid response from server');
-        }
+        const data = await getEventDetails(parseInt(eventId));
+        setEventData(data);
       } catch (err: any) {
         console.error('Error fetching event:', err);
-        // Provide more helpful error messages
-        let errorMessage = 'Failed to load event details';
-        if (err.message) {
-          if (err.message.includes('404') || err.message.includes('not found')) {
-            errorMessage = 'Event not found. It may have been removed or is not available.';
-          } else if (err.message.includes('Unable to connect')) {
-            errorMessage = 'Unable to connect to server. Please check your internet connection.';
-          } else {
-            errorMessage = err.message;
-          }
-        }
-        setError(errorMessage);
+        setError(err.message || 'Failed to load event details');
       } finally {
         setIsLoading(false);
       }
@@ -163,46 +46,6 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
 
     fetchEvent();
   }, [eventId]);
-
-  // Fetch event reviews
-  const fetchReviews = async (parsedEventId: number) => {
-    try {
-      setIsLoadingReviews(true);
-      const response = await getEventReviews(parsedEventId);
-      setReviews(response.reviews || []);
-      setAverageRating(response.average_rating || 0);
-      setTotalReviews(response.total_reviews || 0);
-    } catch (err: any) {
-      console.error('Error fetching reviews:', err);
-      // Silently fail - reviews are not critical
-      setReviews([]);
-      setAverageRating(0);
-      setTotalReviews(0);
-    } finally {
-      setIsLoadingReviews(false);
-    }
-  };
-  // Handle query parameters for pending booking payment
-  useEffect(() => {
-    const bookingParam = searchParams.get('booking');
-    const payParam = searchParams.get('pay');
-    
-    if (bookingParam && payParam === 'true' && eventData && !eventData.is_free) {
-      const bookingId = parseInt(bookingParam);
-      if (!isNaN(bookingId)) {
-        setPendingBookingId(bookingId);
-        // Clear any success message - we want to show payment option, not "You're In!"
-        setSuccessMessage(null);
-        // Scroll to ticket selector/payment section
-        setTimeout(() => {
-          const ticketSection = document.getElementById('ticket-selector-section');
-          if (ticketSection) {
-            ticketSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
-        }, 500);
-      }
-    }
-  }, [searchParams, eventData]);
 
   // Format date and time
   const formatDate = (dateString: string) => {
@@ -216,92 +59,19 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
     });
   };
 
-  // Format date range for multi-day events
-  const formatDateRange = (startDateString: string, endDateString?: string | null) => {
-    if (!startDateString) return 'TBA';
-    
-    const startDate = new Date(startDateString);
-    
-    // If no end date or same day, just return single date
-    if (!endDateString) {
-      return formatDate(startDateString);
-    }
-    
-    const endDate = new Date(endDateString);
-    
-    // Check if dates are valid
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      return formatDate(startDateString);
-    }
-    
-    // Check if same day (ignoring time)
-    const isSameDay = startDate.toDateString() === endDate.toDateString();
-    if (isSameDay) {
-      return formatDate(startDateString);
-    }
-    
-    // Format start date: "Wed, Dec 24th"
-    const startFormatted = startDate.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric'
-    });
-    
-    // Format end date
-    const isSameMonth = startDate.getMonth() === endDate.getMonth() && startDate.getFullYear() === endDate.getFullYear();
-    const isSameYear = startDate.getFullYear() === endDate.getFullYear();
-    
-    let endFormatted;
-    if (isSameMonth) {
-      // Same month: "Fri, Dec 27th"
-      endFormatted = endDate.toLocaleDateString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric'
-      });
-    } else if (isSameYear) {
-      // Different month, same year: "Fri, Jan 2nd"
-      endFormatted = endDate.toLocaleDateString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric'
-      });
-    } else {
-      // Different year: "Fri, Jan 2nd, 2026"
-      endFormatted = endDate.toLocaleDateString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      });
-    }
-    
-    return `${startFormatted} - ${endFormatted}`;
-  };
-
   const formatTime = (dateString: string) => {
     if (!dateString) return 'TBA';
-    try {
-      const date = new Date(dateString);
-      // Check if date is valid
-      if (isNaN(date.getTime())) return 'TBA';
-      return date.toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
-        minute: '2-digit',
-        hour12: true 
-      });
-    } catch (err) {
-      console.error('Error formatting time:', err);
-      return 'TBA';
-    }
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
+    });
   };
 
-  const formatTimeRange = (startDate: string, endDate?: string | null) => {
-    if (!startDate) return 'TBA';
+  const formatTimeRange = (startDate: string, endDate: string) => {
+    if (!startDate || !endDate) return 'TBA';
     const start = formatTime(startDate);
-    if (!endDate) {
-      return start; // Just show start time if no end date
-    }
     const end = formatTime(endDate);
     return `${start} - ${end}`;
   };
@@ -347,155 +117,6 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
     }
   };
 
-  // Handle ticket booking
-  const handleBuyTicket = async (ticketId?: string, quantity: number = 1) => {
-    // Check if user is authenticated
-    if (!isAuthenticated) {
-      setShowLoginModal(true);
-      return;
-    }
-
-    if (!eventData) return;
-
-    // For free events, limit quantity to 5 tickets max
-    if (eventData.is_free && quantity > 5) {
-      setError('You can only book up to 5 tickets for free events.');
-      return;
-    }
-
-    // If there's a pending booking ID, don't create a new booking - show error
-    if (pendingBookingId) {
-      setError('You already have a pending booking for this event. Please complete payment using the "Complete Payment Now" button above.');
-      return;
-    }
-
-    // If user has existing booking, show prompt to buy more
-    if (hasExistingBooking && !showBuyMorePrompt) {
-      setShowBuyMorePrompt(true);
-      return;
-    }
-
-    // Get selected ticket type
-    const ticketTypes = eventData.ticket_types || [];
-    let ticketTypeId: number | null = null;
-
-    if (ticketTypes.length > 0) {
-      // If a specific ticket type is selected, use it
-      if (selectedTicketType) {
-        const selected = ticketTypes.find((tt: any) => tt.id?.toString() === selectedTicketType);
-        ticketTypeId = selected?.id || ticketTypes[0].id;
-      } else {
-        // Use first available ticket type
-        ticketTypeId = ticketTypes[0].id;
-      }
-    } else if (ticketId) {
-      // If ticketId was passed from TicketSelector, try to use it
-      ticketTypeId = parseInt(ticketId) || null;
-    }
-
-    // For free events, we can proceed without ticket type (backend will create default)
-    // For paid events, ticket type is required
-    if (!ticketTypeId && !eventData.is_free) {
-      setError('Please select a ticket type');
-      return;
-    }
-
-    setIsBooking(true);
-    setError(null);
-    setSuccessMessage(null);
-    setShowBuyMorePrompt(false); // Reset the prompt
-
-    try {
-      console.log('Booking ticket with:', { event_id: parseInt(eventId), ticket_type_id: ticketTypeId, quantity });
-      
-      // Prepare booking data - ticket_type_id is optional for free events
-      const bookingData: any = {
-        event_id: parseInt(eventId),
-        quantity: quantity,
-      };
-      
-      // Only include ticket_type_id if we have one (required for paid events)
-      if (ticketTypeId) {
-        bookingData.ticket_type_id = ticketTypeId;
-      }
-      
-      // Include promo code if provided and validated
-      if (promoCode && promoCode.trim() && !promoCodeError) {
-        bookingData.promo_code = promoCode.trim().toUpperCase();
-      }
-      
-      // Book the ticket
-      const bookingResult = await bookTicket(bookingData);
-
-      console.log('Booking result:', bookingResult);
-      setBookingData(bookingResult);
-
-      // If event is free, booking is automatically confirmed
-      if (eventData.is_free || !bookingResult.requires_payment) {
-        setSuccessMessage('You\'re in! Go to your dashboard to download your ticket.');
-        setIsBooking(false); // Stop loading spinner
-        setHasExistingBooking(true); // Mark that user now has a booking
-        // Refresh event data to update attendee count (don't fail if refresh fails)
-        // Only refresh if eventId is valid
-        if (eventId && !isNaN(parseInt(eventId)) && parseInt(eventId) > 0) {
-          try {
-            const updatedData = await getEventDetails(parseInt(eventId));
-            if (updatedData && updatedData.id) {
-              setEventData(updatedData);
-            }
-          } catch (refreshErr) {
-            console.warn('Failed to refresh event data after booking:', refreshErr);
-            // Don't show error - booking was successful
-          }
-        }
-      } else {
-        // Show payment modal for paid events
-        const bookingId = bookingResult.booking?.id || bookingResult.booking_id;
-        console.log('Showing payment modal for booking ID:', bookingId);
-        if (bookingId) {
-          setShowPaymentModal(true);
-          setIsBooking(false); // Stop loading spinner
-        } else {
-          setError('Booking created but could not get booking ID. Please try again.');
-          setIsBooking(false); // Stop loading spinner
-        }
-      }
-    } catch (err: any) {
-      console.error('Booking error:', err);
-      // Handle duplicate booking error - allow user to buy more tickets
-      if (err.message && (err.message.includes('already booked') || err.message.includes('pending booking'))) {
-        setHasExistingBooking(true);
-        setShowBuyMorePrompt(true);
-        setError(''); // Clear error, show prompt instead
-      } else {
-        setError(err.message || 'Failed to book ticket. Please try again.');
-      }
-      setIsBooking(false);
-    }
-  };
-
-  // Handle payment success
-  const handlePaymentSuccess = () => {
-    setSuccessMessage('Payment successful! Your tickets have been confirmed. Check your email.');
-    setShowPaymentModal(false);
-    setIsBooking(false); // Stop any loading spinner
-    setPendingBookingId(null); // Clear pending booking
-    // Refresh event data (don't fail if refresh fails)
-    // Only refresh if eventId is valid
-    if (eventId && !isNaN(parseInt(eventId)) && parseInt(eventId) > 0) {
-      getEventDetails(parseInt(eventId))
-        .then((data) => {
-          if (data && data.id) {
-            setEventData(data);
-          }
-        })
-        .catch((err) => {
-          console.warn('Failed to refresh event data after payment:', err);
-          // Don't show error - payment was successful
-        });
-    }
-  };
-
   // Loading state
   if (isLoading) {
     return (
@@ -508,55 +129,21 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
     );
   }
 
-  // Error state - only show if we're not loading and there's an actual error
-  if (!isLoading && (error || (!eventData && error))) {
+  // Error state
+  if (error || !eventData) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Navbar onNavigate={onNavigate} currentPage="event-detail" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="text-center">
-            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-              {error && error.includes('not found') ? 'Event Not Found' : 'Load Failed'}
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto">
-              {error || 'The event you are looking for does not exist or could not be loaded.'}
-            </p>
-            <div className="flex gap-4 justify-center">
-              <button
-                onClick={() => onNavigate('landing')}
-                className="px-6 py-3 bg-[#27aae2] text-white rounded-lg font-medium hover:bg-[#1e8bb8] transition-colors"
-              >
-                Back to Events
-              </button>
-              <button
-                onClick={() => {
-                  setError(null);
-                  setIsLoading(true);
-                  // Retry loading
-                  getEventDetails(parseInt(eventId))
-                    .then((data) => {
-                      if (data && data.id) {
-                        setEventData(data);
-                        setError(null);
-                      } else {
-                        setError('Event not found or invalid response from server');
-                      }
-                    })
-                    .catch((err) => {
-                      setError(err.message || 'Failed to load event details');
-                    })
-                    .finally(() => setIsLoading(false));
-                }}
-                className="px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-              >
-                Try Again
-              </button>
-            </div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Event Not Found</h1>
+            <p className="text-gray-600 dark:text-gray-400 mb-8">{error || 'The event you are looking for does not exist.'}</p>
+            <button
+              onClick={() => onNavigate('landing')}
+              className="px-6 py-3 bg-[#27aae2] text-white rounded-lg font-medium hover:bg-[#1e8bb8] transition-colors"
+            >
+              Back to Events
+            </button>
           </div>
         </div>
       </div>
@@ -593,9 +180,7 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
       id: tt.id?.toString() || tt.name?.toLowerCase().replace(/\s+/g, '-') || 'ticket-1',
       name: tt.name || 'Standard Ticket',
       price: parseFloat(tt.price || 0),
-      available: tt.quantity_available !== null && tt.quantity_available !== undefined 
-        ? tt.quantity_available 
-        : (tt.quantity_total === null || tt.quantity_total === undefined ? null : (tt.quantity || tt.available || 0))
+      available: tt.quantity_available || tt.quantity || tt.available || 0
     }));
     
     tickets = {
@@ -627,26 +212,7 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
     : (eventData.venue_name || eventData.venue_address || 'Location TBA');
 
   return (
-    <>
-      {eventData && (
-        <SEO
-          title={`${eventData.title} - Niko Free | Book Tickets Online`}
-          description={eventData.description || `Join us for ${eventData.title}. Book your tickets now on Niko Free.`}
-          keywords={`${eventData.title}, ${eventData.category?.name || 'event'}, events kenya, tickets kenya, ${eventData.venue_name || eventData.venue_address || 'kenya'}, event booking, niko free`}
-          image={eventData.poster_image ? (eventData.poster_image.startsWith('http') ? eventData.poster_image : `${API_BASE_URL}${eventData.poster_image.startsWith('/') ? '' : '/'}${eventData.poster_image}`) : 'https://niko-free.com/src/images/Niko%20Free%20Logo.png'}
-          url={`https://niko-free.com/event-detail/${eventId}`}
-          type="website"
-          event={{
-            name: eventData.title,
-            startDate: eventData.start_date,
-            endDate: eventData.end_date,
-            location: eventData.venue_name || eventData.venue_address || 'Kenya',
-            description: eventData.description,
-            image: eventData.poster_image ? (eventData.poster_image.startsWith('http') ? eventData.poster_image : `${API_BASE_URL}${eventData.poster_image.startsWith('/') ? '' : '/'}${eventData.poster_image}`) : undefined
-          }}
-        />
-      )}
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200 relative">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200 relative">
       {/* Light mode dot pattern overlay */}
       <div className="block dark:hidden fixed inset-0 pointer-events-none z-0" style={{
         backgroundImage: 'radial-gradient(circle, rgba(0, 0, 0, 0.08) 1px, transparent 1px)',
@@ -678,54 +244,12 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
                   <img
                     src={eventImage}
                     alt={eventData.title}
-                    loading="lazy"
-                    decoding="async"
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute top-4 left-4 flex items-center gap-2">
+                  <div className="absolute top-4 left-4">
                     <span className="px-4 py-2 bg-[#27aae2] text-white text-sm font-semibold rounded-full">
                       {eventData.category?.name || 'Event'}
                     </span>
-                  </div>
-                  {/* Wishlist Button */}
-                  <div className="absolute top-4 right-4">
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        if (!isAuthenticated) {
-                          setShowLoginModal(true);
-                          return;
-                        }
-                        
-                        setIsTogglingWishlist(true);
-                        try {
-                          if (inBucketlist) {
-                            await removeFromBucketlist(parseInt(eventId));
-                            setInBucketlist(false);
-                          } else {
-                            await addToBucketlist(parseInt(eventId));
-                            setInBucketlist(true);
-                          }
-                          // Update event data
-                          const updatedData = await getEventDetails(parseInt(eventId));
-                          if (updatedData && updatedData.id) {
-                            setEventData(updatedData);
-                          }
-                        } catch (err: any) {
-                          console.error('Error toggling wishlist:', err);
-                          if (err.message && !err.message.includes('already in bucketlist')) {
-                            alert(err.message || 'Failed to update wishlist');
-                          }
-                        } finally {
-                          setIsTogglingWishlist(false);
-                        }
-                      }}
-                      disabled={isTogglingWishlist}
-                      className="w-12 h-12 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                      title={inBucketlist ? 'Remove from wishlist' : 'Add to wishlist'}
-                    >
-                      <Heart className={`w-6 h-6 transition-all ${inBucketlist ? 'fill-red-500 text-red-500' : 'text-gray-600 dark:text-gray-400'}`} />
-                    </button>
                   </div>
                 </div>
 
@@ -739,7 +263,7 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
                       </div>
                       <div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">Date</p>
-                        <p className="font-semibold text-gray-900 dark:text-white">{formatDateRange(eventData.start_date, eventData.end_date)}</p>
+                        <p className="font-semibold text-gray-900 dark:text-white">{formatDate(eventData.start_date)}</p>
                       </div>
                     </div>
 
@@ -750,7 +274,7 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
                       <div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">Time</p>
                         <p className="font-semibold text-gray-900 dark:text-white">
-                          {eventData.start_date ? formatTimeRange(eventData.start_date, eventData.end_date) : 'TBA'}
+                          {formatTimeRange(eventData.start_date, eventData.end_date)}
                         </p>
                       </div>
                     </div>
@@ -772,22 +296,15 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
                       <div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">Attendees</p>
                         <p className="font-semibold text-gray-900 dark:text-white">
-                          {eventData.attendee_count || 0} attending
+                          {eventData.attendee_count || 0} {eventData.capacity ? `/ ${eventData.capacity}` : ''}
                         </p>
-                        {eventData.tickets_left !== null && eventData.tickets_left !== undefined && !eventData.is_unlimited && !eventData.ticket_types?.some((tt) => tt.quantity_total === null || tt.quantity_total === undefined) && (
-                          <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                            {eventData.tickets_left} tickets left
-                          </p>
-                        )}
                       </div>
                     </div>
                   </div>
 
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-8">
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">About This Event</h2>
-                    <div className="max-w-full overflow-hidden">
-                      <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4 whitespace-pre-wrap break-words overflow-wrap-anywhere">{eventData.description}</p>
-                    </div>
+                    <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">{eventData.description}</p>
                   </div>
 
                   {(eventData.interests && eventData.interests.length > 0) && (
@@ -809,43 +326,20 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
                   {eventData.partner && (
                     <div className="border-t border-gray-200 dark:border-gray-700 pt-8 mt-8">
                       <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Hosted By</h3>
-                      <div 
-                        className="flex items-center space-x-4 cursor-pointer hover:opacity-80 transition-opacity"
-                        onClick={() => onNavigate('partner-profile', { partnerId: eventData.partner.id })}
-                      >
-                        <div className="relative flex-shrink-0">
-                          {eventData.partner.logo ? (
-                            <img
-                              src={getImageUrl(eventData.partner.logo)}
-                              alt={eventData.partner.business_name}
-                              loading="lazy"
-                              decoding="async"
-                              className="w-16 h-16 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
-                              onError={(e) => {
-                                // Fallback to placeholder if image fails to load
-                                (e.target as HTMLImageElement).src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(eventData.partner.business_name) + '&background=27aae2&color=fff&size=128';
-                              }}
-                            />
-                          ) : (
-                            <div className="w-16 h-16 rounded-full bg-[#27aae2] flex items-center justify-center border-2 border-gray-200 dark:border-gray-700">
-                              <span className="text-white text-xl font-bold">
-                                {eventData.partner.business_name?.charAt(0)?.toUpperCase() || 'P'}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="font-semibold text-gray-900 dark:text-white text-lg truncate">
-                              {eventData.partner.business_name}
-                            </h4>
-                            {((eventData.partner.total_events || 0) >= 10 || (eventData.partner.total_attendees || 0) >= 500) && (
-                              <span className="px-2 py-0.5 text-xs font-medium bg-black text-white rounded-full flex-shrink-0 flex items-center gap-1">
-                                <CheckCircle2 className="w-3 h-3" />
-                                Verified
-                              </span>
-                            )}
-                          </div>
+                      <div className="flex items-center space-x-4">
+                        {eventData.partner.logo && (
+                          <img
+                            src={eventData.partner.logo.startsWith('http') 
+                              ? eventData.partner.logo 
+                              : `${API_BASE_URL}${eventData.partner.logo.startsWith('/') ? '' : '/'}${eventData.partner.logo}`}
+                            alt={eventData.partner.business_name}
+                            className="w-16 h-16 rounded-full object-cover"
+                          />
+                        )}
+                        <div>
+                          <h4 className="font-semibold text-gray-900 dark:text-white text-lg">
+                            {eventData.partner.business_name}
+                          </h4>
                           <p className="text-gray-600 dark:text-gray-400">
                             {eventData.partner.category?.name || 'Event Organizer'}
                           </p>
@@ -875,11 +369,7 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
                         height="100%"
                         frameBorder="0"
                         style={{ border: 0 }}
-                        src={
-                          eventData.latitude && eventData.longitude
-                            ? `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1000!2d${eventData.longitude}!3d${eventData.latitude}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s${encodeURIComponent(location)}!2s${encodeURIComponent(location)}!5e0!3m2!1sen!2ske!4v${Date.now()}!5m2!1sen!2ske`
-                            : `https://maps.google.com/maps?q=${encodeURIComponent(location)}&t=&z=15&ie=UTF8&iwloc=&output=embed`
-                        }
+                        src={`https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3988.8159534114384!2d36.82035431475395!3d-1.2880051359988408!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x182f10d6d6f8f8f3%3A0x3f0e0e0e0e0e0e0e!2s${encodeURIComponent(location)}!5e0!3m2!1sen!2ske!4v1234567890123!5m2!1sen!2ske`}
                         allowFullScreen
                         loading="lazy"
                         referrerPolicy="no-referrer-when-downgrade"
@@ -899,178 +389,16 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
                 )}
 
                 {/* Ticketing Section */}
-                <div id="ticket-selector-section">
-                  {/* Show pending booking warning if applicable */}
-                  {pendingBookingId && !successMessage && (
-                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-500 rounded-xl p-4 mb-4">
-                      <div className="flex items-start gap-3 mb-3">
-                        <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-yellow-900 dark:text-yellow-200 mb-1">
-                            Complete Your Payment
-                          </h4>
-                          <p className="text-sm text-yellow-800 dark:text-yellow-300">
-                            You have a pending booking for this event. Please complete payment to secure your tickets.
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={async () => {
-                          if (pendingBookingId) {
-                            try {
-                              // Fetch booking details to get amount
-                              const token = getToken();
-                              if (!token) {
-                                console.error('No valid token found');
-                                return;
-                              }
-                              const response = await fetch(`${API_BASE_URL}/api/users/bookings/${pendingBookingId}`, {
-                                headers: {
-                                  ...getAuthHeaders(),
-                                },
-                              });
-                              
-                              if (response.ok) {
-                                const data = await response.json();
-                                const booking = data.booking || data;
-                                setBookingData({ 
-                                  booking_id: pendingBookingId,
-                                  booking: booking,
-                                  amount: booking.total_amount || booking.amount || 0
-                                });
-                                setShowPaymentModal(true);
-                              } else {
-                                const errorData = await response.json().catch(() => ({}));
-                                console.error('Failed to load booking:', errorData);
-                                // Still open modal with just booking ID - payment modal can fetch amount
-                                setBookingData({ booking_id: pendingBookingId });
-                                setShowPaymentModal(true);
-                              }
-                            } catch (err: any) {
-                              console.error('Error fetching booking:', err);
-                              // Still open modal with just booking ID - payment modal can fetch amount
-                              setBookingData({ booking_id: pendingBookingId });
-                              setShowPaymentModal(true);
-                            }
-                          }
-                        }}
-                        className="w-full px-4 py-2.5 bg-[#27aae2] text-white rounded-lg font-semibold hover:bg-[#1e8bb8] transition-colors flex items-center justify-center gap-2"
-                      >
-                        <CreditCard className="w-4 h-4" />
-                        Complete Payment Now
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Show "Buy More Tickets" prompt if user already has booking */}
-                  {showBuyMorePrompt && !successMessage && !pendingBookingId && (
-                    <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-500 rounded-xl p-4 mb-4">
-                      <div className="flex items-start gap-3 mb-3">
-                        <CheckCircle2 className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-blue-900 dark:text-blue-200 mb-1">
-                            You Already Have Tickets
-                          </h4>
-                          <p className="text-sm text-blue-800 dark:text-blue-300 mb-2">
-                            You have already booked tickets for this event. Would you like to buy more tickets?
-                          </p>
-                          {eventData.is_free && (
-                            <p className="text-xs text-blue-700 dark:text-blue-400 mb-2">
-                              Note: Free events are limited to 5 tickets per person.
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            setShowBuyMorePrompt(false);
-                            setHasExistingBooking(false);
-                            // Trigger booking with current selection
-                            handleBuyTicket();
-                          }}
-                          className="flex-1 px-4 py-2.5 bg-[#27aae2] text-white rounded-lg font-semibold hover:bg-[#1e8bb8] transition-colors"
-                        >
-                          Yes, Buy More
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowBuyMorePrompt(false);
-                            onNavigate('user-dashboard');
-                          }}
-                          className="flex-1 px-4 py-2.5 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                        >
-                          View My Tickets
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {successMessage && !pendingBookingId ? (
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border-2 border-green-500">
-                      <div className="text-center">
-                        <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <svg className="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        </div>
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">You're In! 🎉</h3>
-                        <p className="text-gray-600 dark:text-gray-400 mb-4">{successMessage}</p>
-                        <button
-                          onClick={() => {
-                            setSuccessMessage(null);
-                            onNavigate('user-dashboard');
-                          }}
-                          className="px-6 py-2 bg-[#27aae2] text-white rounded-lg hover:bg-[#1e8bb8] transition-colors font-semibold"
-                        >
-                          Go to Dashboard
-                        </button>
-                      </div>
-                    </div>
-                  ) : !showBuyMorePrompt ? (
-                    <TicketSelector
-                      ticketType={ticketType}
-                      tickets={tickets}
-                      selectedTicketType={selectedTicketType}
-                      selectedTimeSlot={selectedTimeSlot}
-                      onSelectTicketType={setSelectedTicketType}
-                      onSelectTimeSlot={setSelectedTimeSlot}
-                      isRSVPed={false}
-                      onBuyTicket={handleBuyTicket}
-                      promoCode={promoCode}
-                      onPromoCodeChange={(code) => {
-                        setPromoCode(code);
-                        // Clear validated promo code when user changes the input
-                        if (!code.trim()) {
-                          setValidatedPromoCode(null);
-                          setPromoCodeError('');
-                        }
-                      }}
-                      promoCodeError={promoCodeError}
-                      isValidatingPromo={isValidatingPromo}
-                      onValidatePromo={handleValidatePromo}
-                      validatedPromoCode={validatedPromoCode}
-                      maxQuantity={eventData.is_free ? 5 : undefined}
-                    />
-                  ) : null}
-                </div>
-
-                {/* Error Message */}
-                {error && !successMessage && !showBuyMorePrompt && (
-                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mt-4">
-                    <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
-                  </div>
-                )}
-
-                {/* Loading State - Only show if not successful and actively booking */}
-                {isBooking && !successMessage && (
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg mt-4">
-                    <div className="text-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#27aae2] mx-auto mb-2"></div>
-                      <p className="text-gray-600 dark:text-gray-400">Processing booking...</p>
-                    </div>
-                  </div>
-                )}
+                <TicketSelector
+                  ticketType={ticketType}
+                  tickets={tickets}
+                  selectedTicketType={selectedTicketType}
+                  selectedTimeSlot={selectedTimeSlot}
+                  onSelectTicketType={setSelectedTicketType}
+                  onSelectTimeSlot={setSelectedTimeSlot}
+                  isRSVPed={false}
+                  onBuyTicket={() => setShowLoginModal(true)}
+                />
 
                 {/* Event Actions */}
                 <EventActions />
@@ -1105,7 +433,7 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
         </div>
       </div>
 
-      <Footer onNavigate={onNavigate} />
+      <Footer />
 
       {/* Login Modal */}
       <LoginModal
@@ -1113,23 +441,6 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
         onClose={() => setShowLoginModal(false)}
         onNavigate={onNavigate}
       />
-
-      {/* Payment Modal */}
-      {showPaymentModal && bookingData && (bookingData.booking?.id || bookingData.booking_id) && (
-        <PaymentModal
-          isOpen={showPaymentModal}
-          onClose={() => {
-            setShowPaymentModal(false);
-            setBookingData(null);
-          }}
-          bookingId={bookingData.booking?.id || bookingData.booking_id}
-          amount={parseFloat(bookingData.booking?.total_amount || bookingData.amount || bookingData.booking?.amount || 0)}
-          eventTitle={eventData?.title || 'Event'}
-          onPaymentSuccess={handlePaymentSuccess}
-          onNavigate={onNavigate}
-        />
-      )}
-      </div>
-    </>
+    </div>
   );
 }

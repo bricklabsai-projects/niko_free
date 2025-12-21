@@ -1,8 +1,7 @@
-import { Upload, CheckCircle, Building2, Mail, Phone, Tag, FileText, ArrowRight, ArrowLeft, MapPin, PenTool, Plus, Minus, AlertCircle, X, Sparkles } from 'lucide-react';
+import { Upload, CheckCircle, Building2, Mail, Phone, Tag, FileText, ArrowRight, ArrowLeft, MapPin, PenTool, Plus, Minus, AlertCircle, Sparkles } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import SEO from '../components/SEO';
 import { applyAsPartner } from '../services/partnerService';
 
 interface BecomePartnerProps {
@@ -17,9 +16,9 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
     location: '',
     categories: [] as string[],
     interests: '',
+    description: '',
     email: '',
     phone: '',
-    about: '',
     signature: '',
     acceptTerms: false
   });
@@ -35,9 +34,8 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
   const [customInterests, setCustomInterests] = useState<string[]>([]);
   const [businessNameError, setBusinessNameError] = useState('');
   const [logoError, setLogoError] = useState('');
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [showTermsModal, setShowTermsModal] = useState(false);
-  const [isGeneratingAbout, setIsGeneratingAbout] = useState(false);
 
   // Categories matching backend database IDs
   const categories = [
@@ -61,8 +59,8 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
     setFormData(prev => ({
       ...prev,
       categories: prev.categories.includes(categoryId)
-        ? [] // Deselect if clicking the same category
-        : [categoryId] // Select only this category
+        ? prev.categories.filter(id => id !== categoryId)
+        : [...prev.categories, categoryId]
     }));
   };
 
@@ -92,15 +90,11 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
         location: formData.location,
         category_id: formData.categories[0], // Use first selected category as primary
         interests: allInterests.length > 0 ? JSON.stringify(allInterests) : undefined,
+        description: formData.description || undefined,
         signature_name: formData.signature,
         terms_accepted: 'true',
         logo: formData.logo || undefined,
-        description: formData.about.trim() || undefined,
       };
-      
-      // Debug: Log the interests being sent
-      console.log('Sending interests:', allInterests);
-      console.log('Interests JSON:', applicationData.interests);
 
       // Call API
       await applyAsPartner(applicationData);
@@ -112,6 +106,57 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
       setSubmitError(error.message || 'Failed to submit application. Please try again.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const generateAIDescription = async () => {
+    if (!formData.businessName) {
+      alert('Please enter your business name first');
+      return;
+    }
+
+    setIsGeneratingDescription(true);
+    try {
+      // Direct import to ensure it's loaded
+      const openaiService = await import('../services/openaiService');
+      const { generatePartnerDescription } = openaiService;
+      
+      const selectedCategory = formData.categories.length > 0 
+        ? categories.find(c => c.id === formData.categories[0])?.name 
+        : undefined;
+      
+      const allInterests = [...customInterests];
+      if (formData.interests && formData.interests.trim()) {
+        allInterests.push(formData.interests.trim());
+      }
+      
+      console.log('Generating description with params:', {
+        businessName: formData.businessName,
+        category: selectedCategory,
+        location: formData.location,
+        interests: allInterests.length > 0 ? allInterests : undefined,
+      });
+      
+      const description = await generatePartnerDescription({
+        businessName: formData.businessName,
+        category: selectedCategory,
+        location: formData.location,
+        interests: allInterests.length > 0 ? allInterests : undefined,
+      });
+      
+      console.log('Generated description:', description);
+      
+      if (description && description.trim()) {
+        setFormData(prev => ({ ...prev, description: description.trim() }));
+      } else {
+        throw new Error('Empty description received from AI');
+      }
+    } catch (error: any) {
+      console.error('Error generating description:', error);
+      const errorMessage = error?.message || 'Failed to generate description. Please try again.';
+      alert(errorMessage);
+    } finally {
+      setIsGeneratingDescription(false);
     }
   };
 
@@ -328,60 +373,8 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
     }
   };
 
-  const handleGenerateAbout = async () => {
-    if (!formData.businessName || formData.categories.length === 0) {
-      alert('Please fill in your business name and select a category first');
-      return;
-    }
-
-    setIsGeneratingAbout(true);
-    try {
-      // Use Gemini API service
-      const geminiService = await import('../services/geminiService');
-      const { generatePartnerDescription } = geminiService;
-      
-      // Get category name
-      const selectedCategory = categories.find(cat => cat.id === formData.categories[0]);
-      const categoryName = selectedCategory?.name || 'Events';
-      
-      // Prepare interests
-      const allInterests = [...customInterests];
-      if (formData.interests && formData.interests.trim()) {
-        allInterests.push(formData.interests.trim());
-      }
-      
-      console.log('Generating description with params:', {
-        businessName: formData.businessName,
-        category: categoryName,
-        location: formData.location,
-        interests: allInterests.length > 0 ? allInterests : undefined,
-      });
-      
-      const description = await generatePartnerDescription({
-        businessName: formData.businessName,
-        category: categoryName,
-        location: formData.location,
-        interests: allInterests.length > 0 ? allInterests : undefined,
-      });
-      
-      console.log('Generated description:', description);
-      
-      if (description && description.trim()) {
-        setFormData({ ...formData, about: description.trim() });
-      } else {
-        throw new Error('Empty description received from AI');
-      }
-    } catch (error: any) {
-      console.error('Error generating description:', error);
-      const errorMessage = error?.message || 'Failed to generate description. Please try again.';
-      alert(errorMessage);
-    } finally {
-      setIsGeneratingAbout(false);
-    }
-  };
-
   const canProceedStep1 = formData.businessName && formData.location && formData.logo && !businessNameError && !logoError;
-  const canProceedStep2 = formData.categories.length > 0 && customInterests.length >= 3;
+  const canProceedStep2 = formData.categories.length > 0;
   const canProceedStep3 = formData.email && formData.phone && !emailError && !phoneError;
   const canProceedStep4 = formData.signature && formData.acceptTerms;
 
@@ -415,20 +408,13 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
             </button>
           </div>
         </div>
-        <Footer onNavigate={onNavigate} />
+        <Footer />
       </div>
     );
   }
 
   return (
-    <>
-      <SEO
-        title="Become a Partner - Niko Free | Event Organizer Platform"
-        description="Join Niko Free as an event organizer partner. Create, manage, and promote your events in Kenya. Reach thousands of attendees and grow your event business."
-        keywords="become event organizer, event partner kenya, event management platform, create events kenya, event organizer registration, partner with niko free, event business kenya, sell event tickets online"
-        url="https://niko-free.com/become-partner"
-      />
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200 relative">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200 relative">
       {/* Light mode dot pattern overlay */}
       <div className="block dark:hidden fixed inset-0 pointer-events-none z-0" style={{
         backgroundImage: 'radial-gradient(circle, rgba(0, 0, 0, 0.08) 1px, transparent 1px)',
@@ -625,7 +611,7 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
               <div>
                 <label className="flex items-center space-x-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
                   <Tag className="w-4 h-4" />
-                  <span>Select One Category *</span>
+                  <span>Select Categories * (Choose at least one)</span>
                 </label>
                 <div className="flex flex-wrap gap-3">
                   {categories.map((category) => {
@@ -666,7 +652,7 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
               <div>
                 <label className="flex items-center space-x-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   <FileText className="w-4 h-4" />
-                  <span>Additional Interests * (Add at least 3)</span>
+                  <span>Additional Interests (Optional)</span>
                 </label>
                 <div className="flex gap-2 mb-3">
                   <input
@@ -688,11 +674,8 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
                     Add
                   </button>
                 </div>
-                <p className={`text-sm mt-2 ${customInterests.length >= 3 ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}`}>
-                  {customInterests.length} of 3 interests added {customInterests.length >= 3 && '✓'}
-                </p>
                 {customInterests.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-3">
+                  <div className="flex flex-wrap gap-2">
                     {customInterests.map((interest, index) => (
                       <div
                         key={index}
@@ -711,6 +694,37 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
                     ))}
                   </div>
                 )}
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="flex items-center space-x-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    <FileText className="w-4 h-4" />
+                    <span>Business Description (Optional)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={generateAIDescription}
+                    disabled={isGeneratingDescription || !formData.businessName}
+                    className="flex items-center gap-1 px-3 py-1 text-sm bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Sparkles className={`w-4 h-4 ${isGeneratingDescription ? 'animate-spin' : ''}`} />
+                    {isGeneratingDescription ? 'Generating...' : 'AI Generate'}
+                  </button>
+                </div>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  rows={6}
+                  placeholder="Describe your business, what you do, and what makes you unique..."
+                  className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl focus:outline-none transition-colors resize-none"
+                  onFocus={(e) => e.target.style.borderColor = '#27aae2'}
+                  onBlur={(e) => { if (!formData.description) e.target.style.borderColor = ''; }}
+                  style={{ borderColor: formData.description ? '#27aae2' : '' }}
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Help us understand your business better. This will be reviewed during your application.
+                </p>
               </div>
 
               <div className="flex justify-between pt-4">
@@ -820,59 +834,6 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
                 )}
               </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="flex items-center space-x-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                    <FileText className="w-4 h-4" />
-                    <span>About Your Business (Optional)</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleGenerateAbout}
-                    disabled={isGeneratingAbout || !formData.businessName || formData.categories.length === 0}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      isGeneratingAbout || !formData.businessName || formData.categories.length === 0
-                        ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-md hover:shadow-lg'
-                    }`}
-                  >
-                    {isGeneratingAbout ? (
-                      <>
-                        <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <span>Generating...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-4 h-4" />
-                        <span>Generate with AI</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-                <textarea
-                  value={formData.about}
-                  onChange={(e) => setFormData({ ...formData, about: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl focus:outline-none transition-colors resize-none"
-                  onFocus={(e) => e.target.style.borderColor = '#27aae2'}
-                  onBlur={(e) => { if (!formData.about) e.target.style.borderColor = ''; }}
-                  placeholder="Tell us about your business, what events you organize, and your experience..."
-                  rows={4}
-                  style={{ borderColor: formData.about ? '#27aae2' : '' }}
-                  disabled={isGeneratingAbout}
-                />
-                {formData.about && !isGeneratingAbout && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">This will help us understand your business better</p>
-                )}
-                {!formData.businessName || formData.categories.length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    <span className="text-amber-600 dark:text-amber-400">💡 Tip:</span> Fill in your business name and category to enable AI generation
-                  </p>
-                ) : null}
-              </div>
-
               <div className="flex justify-between pt-4">
                 <button
                   onClick={handlePrevious}
@@ -918,13 +879,13 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
               <div className="flex flex-col lg:flex-row gap-6">
                 {/* Left side: Terms & Conditions */}
                 <div className="lg:flex-1">
-                  <div className="border-2 rounded-xl p-6 h-full bg-blue-50 dark:bg-gray-800 border-blue-400 dark:border-blue-500">
+                  <div className="border-2 rounded-xl p-6 dark:bg-gray-800/50 h-full" style={{ backgroundColor: '#e6f7ff', borderColor: '#27aae2' }}>
                     <h3 className="font-bold text-gray-900 dark:text-white mb-3 flex items-center space-x-2">
-                      <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      <FileText className="w-5 h-5" />
                       <span>Partner Terms & Conditions</span>
                     </h3>
-                    <div className="text-sm text-gray-700 dark:text-gray-300 space-y-2 mb-4 max-h-48 overflow-y-auto bg-white dark:bg-gray-900/50 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                      <p className="font-semibold text-gray-900 dark:text-white">By signing this agreement, you agree to:</p>
+                    <div className="text-sm text-gray-700 dark:text-gray-300 space-y-2 mb-4 max-h-48 overflow-y-auto bg-white dark:bg-gray-900 p-4 rounded-lg">
+                      <p className="font-semibold">By signing this agreement, you agree to:</p>
                       <p>• Pay a 7% commission on all ticket sales processed through Niko Free</p>
                       <p>• Ensure all events comply with local laws and regulations</p>
                       <p>• Maintain high quality standards and attendee satisfaction</p>
@@ -934,13 +895,15 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
                       <p>• Understand that payment processing takes 2-3 business days</p>
                       <p>• Maintain ownership of your event content and data</p>
                       <p>• Comply with our data protection and privacy policies</p>
-                      <p className="pt-2 font-semibold text-gray-900 dark:text-white">Cancellation & Refund Policy:</p>
+                      <p className="pt-2 font-semibold">Cancellation & Refund Policy:</p>
                       <p>• Refunds must be processed according to your stated event policy</p>
                       <p>• Partners are responsible for communicating cancellations to attendees</p>
                     </div>
                     <button 
-                      onClick={() => setShowTermsModal(true)}
-                      className="text-sm font-medium transition-colors text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                      className="text-sm font-medium transition-colors"
+                      style={{ color: '#27aae2' }}
+                      onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                      onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                     >
                       Read Full Terms & Conditions →
                     </button>
@@ -1239,147 +1202,5 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
       </div>
       </div>
     </div>
-
-    {/* Terms of Service Modal */}
-    {showTermsModal && (
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowTermsModal(false)}>
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
-          {/* Modal Header */}
-          <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between z-10">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Partner Terms & Conditions</h2>
-            <button
-              onClick={() => setShowTermsModal(false)}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            >
-              <X className="w-6 h-6 text-gray-500 dark:text-gray-400" />
-            </button>
-          </div>
-
-          {/* Modal Content */}
-          <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
-            <div className="prose prose-gray dark:prose-invert max-w-none">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Agreement Overview</h3>
-              <p className="text-gray-700 dark:text-gray-300 mb-4">
-                By signing this Partner Agreement with Niko Free, you agree to the following terms and conditions. Please read carefully before proceeding.
-              </p>
-
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 mt-6">1. Commission Structure</h3>
-              <p className="text-gray-700 dark:text-gray-300 mb-4">
-                • Partners agree to pay a 7% commission on all ticket sales processed through the Niko Free platform.<br/>
-                • Commission is automatically deducted from ticket proceeds before payout.<br/>
-                • No hidden fees or additional charges beyond the stated 7% commission.
-              </p>
-
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 mt-6">2. Event Compliance</h3>
-              <p className="text-gray-700 dark:text-gray-300 mb-4">
-                • All events must comply with local, regional, and national laws and regulations.<br/>
-                • Partners are responsible for obtaining necessary permits and licenses.<br/>
-                • Events must adhere to safety standards and venue requirements.<br/>
-                • Niko Free reserves the right to remove events that violate these guidelines.
-              </p>
-
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 mt-6">3. Quality Standards</h3>
-              <p className="text-gray-700 dark:text-gray-300 mb-4">
-                • Partners must maintain high quality standards for all events.<br/>
-                • Event information must be accurate, complete, and up-to-date.<br/>
-                • Images and descriptions must truthfully represent the event.<br/>
-                • Partners must deliver on all promises made to attendees.
-              </p>
-
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 mt-6">4. Communication Requirements</h3>
-              <p className="text-gray-700 dark:text-gray-300 mb-4">
-                • Partners must respond to attendee inquiries within 24 hours.<br/>
-                • Important event updates must be communicated promptly to attendees.<br/>
-                • Contact information provided must be accurate and monitored regularly.<br/>
-                • Professional and courteous communication is expected at all times.
-              </p>
-
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 mt-6">5. Payment Processing</h3>
-              <p className="text-gray-700 dark:text-gray-300 mb-4">
-                • Payment processing takes 2-3 business days after event conclusion.<br/>
-                • Payouts are made to the bank account or mobile money number on file.<br/>
-                • Partners are responsible for providing accurate payment information.<br/>
-                • Disputed charges may delay payout until resolution.
-              </p>
-
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 mt-6">6. Cancellation & Refund Policy</h3>
-              <p className="text-gray-700 dark:text-gray-300 mb-4">
-                • Partners must establish and clearly communicate their refund policy.<br/>
-                • Refunds must be processed according to the stated event policy.<br/>
-                • Partners are responsible for communicating cancellations to all attendees.<br/>
-                • Niko Free may assist in the refund process but ultimate responsibility lies with the partner.<br/>
-                • Event cancellations require immediate notification to Niko Free support.
-              </p>
-
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 mt-6">7. Content Ownership</h3>
-              <p className="text-gray-700 dark:text-gray-300 mb-4">
-                • Partners retain full ownership of their event content and data.<br/>
-                • Partners grant Niko Free license to display event information on the platform.<br/>
-                • Partners are responsible for ensuring they have rights to all content posted.<br/>
-                • Niko Free respects intellectual property rights and expects partners to do the same.
-              </p>
-
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 mt-6">8. Data Protection & Privacy</h3>
-              <p className="text-gray-700 dark:text-gray-300 mb-4">
-                • Partners must comply with all applicable data protection regulations.<br/>
-                • Attendee data must be handled securely and used only for event purposes.<br/>
-                • Partners may not sell or share attendee data with third parties.<br/>
-                • Niko Free's Privacy Policy applies to all platform interactions.
-              </p>
-
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 mt-6">9. Prohibited Activities</h3>
-              <p className="text-gray-700 dark:text-gray-300 mb-4">
-                • Events promoting illegal activities, violence, or discrimination are strictly prohibited.<br/>
-                • False or misleading event information is not permitted.<br/>
-                • Manipulation of reviews, ratings, or attendance numbers is forbidden.<br/>
-                • Partners may not use the platform to compete directly with Niko Free.
-              </p>
-
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 mt-6">10. Term & Termination</h3>
-              <p className="text-gray-700 dark:text-gray-300 mb-4">
-                • This agreement remains in effect until terminated by either party.<br/>
-                • Either party may terminate with 30 days written notice.<br/>
-                • Niko Free may terminate immediately for violations of these terms.<br/>
-                • Outstanding financial obligations survive termination.
-              </p>
-
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 mt-6">11. Limitation of Liability</h3>
-              <p className="text-gray-700 dark:text-gray-300 mb-4">
-                • Niko Free provides the platform "as is" without warranties.<br/>
-                • Partners are solely responsible for their events and attendee satisfaction.<br/>
-                • Niko Free is not liable for partner actions or event outcomes.<br/>
-                • Total liability is limited to fees paid in the previous 12 months.
-              </p>
-
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 mt-6">12. Modifications</h3>
-              <p className="text-gray-700 dark:text-gray-300 mb-4">
-                • Niko Free may update these terms with reasonable notice.<br/>
-                • Continued use of the platform constitutes acceptance of modified terms.<br/>
-                • Material changes will be communicated via email.<br/>
-                • Partners may terminate if they disagree with modifications.
-              </p>
-
-              <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-400 dark:border-blue-500 rounded-xl">
-                <p className="text-sm text-gray-700 dark:text-gray-300">
-                  <strong className="text-gray-900 dark:text-white">Questions?</strong> If you have any questions about these terms, please contact us at{' '}
-                  <a href="mailto:support@nikofree.com" className="text-blue-600 dark:text-blue-400 hover:underline">support@nikofree.com</a> before signing.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Modal Footer */}
-          <div className="sticky bottom-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-end">
-            <button
-              onClick={() => setShowTermsModal(false)}
-              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-colors"
-            >
-              I Understand
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
-    </>
   );
 }

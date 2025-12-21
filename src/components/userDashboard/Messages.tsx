@@ -20,12 +20,84 @@ interface Conversation {
 }
 
 export default function Messages() {
-  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+  const [selectedConversation, setSelectedConversation] = useState<string | null>('1');
   const [messageText, setMessageText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Messages will be fetched from API when implemented
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([
+    {
+      id: '1',
+      name: 'Sarah Kim',
+      avatar: 'https://i.pravatar.cc/150?img=45',
+      lastMessage: 'See you at the tech summit tomorrow!',
+      time: '2m ago',
+      unread: 2,
+      online: true,
+      messages: [
+        { id: '1', text: 'Hey! Are you going to the Nairobi Tech Summit?', time: '10:30 AM', sent: false },
+        { id: '2', text: 'Yes! I already got my VIP pass 🎉', time: '10:32 AM', sent: true },
+        { id: '3', text: 'Awesome! We should meet up there', time: '10:33 AM', sent: false },
+        { id: '4', text: 'Definitely! Let\'s grab coffee during the break', time: '10:35 AM', sent: true },
+        { id: '5', text: 'See you at the tech summit tomorrow!', time: '10:36 AM', sent: false }
+      ]
+    },
+    {
+      id: '2',
+      name: 'John Doe',
+      avatar: 'https://i.pravatar.cc/150?img=12',
+      lastMessage: 'Thanks for the event recommendation',
+      time: '1h ago',
+      unread: 0,
+      online: true,
+      messages: [
+        { id: '1', text: 'Hey, do you know any good networking events?', time: '9:15 AM', sent: false },
+        { id: '2', text: 'Check out the Startup Networking Mixer at iHub', time: '9:20 AM', sent: true },
+        { id: '3', text: 'Thanks for the event recommendation', time: '9:25 AM', sent: false }
+      ]
+    },
+    {
+      id: '3',
+      name: 'Event Organizers',
+      avatar: 'https://i.pravatar.cc/150?img=25',
+      lastMessage: 'Your ticket has been confirmed',
+      time: '3h ago',
+      unread: 1,
+      online: false,
+      messages: [
+        { id: '1', text: 'Your ticket has been confirmed', time: '8:00 AM', sent: false },
+        { id: '2', text: 'Check your email for the QR code', time: '8:01 AM', sent: false }
+      ]
+    },
+    {
+      id: '4',
+      name: 'Alex Johnson',
+      avatar: 'https://i.pravatar.cc/150?img=33',
+      lastMessage: 'Want to join our group for the festival?',
+      time: '5h ago',
+      unread: 0,
+      online: false,
+      messages: [
+        { id: '1', text: 'Hey! Going to the Sunset Music Festival?', time: 'Yesterday', sent: false },
+        { id: '2', text: 'Thinking about it! Is it good?', time: 'Yesterday', sent: true },
+        { id: '3', text: 'Want to join our group for the festival?', time: 'Yesterday', sent: false }
+      ]
+    },
+    {
+      id: '5',
+      name: 'Yoga Group',
+      avatar: 'https://i.pravatar.cc/150?img=48',
+      lastMessage: 'Don\'t forget your mat tomorrow!',
+      time: '1d ago',
+      unread: 0,
+      online: true,
+      messages: [
+        { id: '1', text: 'Morning! Reminder about tomorrow\'s session', time: '2 days ago', sent: false },
+        { id: '2', text: 'Thanks! What time again?', time: '2 days ago', sent: true },
+        { id: '3', text: '6:00 AM at Karura Forest', time: '2 days ago', sent: false },
+        { id: '4', text: 'Don\'t forget your mat tomorrow!', time: '1 day ago', sent: false }
+      ]
+    }
+  ]);
 
   const activeConversation = conversations.find(c => c.id === selectedConversation);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
@@ -88,15 +160,7 @@ export default function Messages() {
 
             {/* Conversation List */}
             <div className="flex-1 overflow-y-auto">
-              {conversations.length === 0 ? (
-                <div className="flex items-center justify-center h-full p-8">
-                  <div className="text-center">
-                    <MessageCircle className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-                    <p className="text-sm text-gray-500 dark:text-gray-400">No messages yet</p>
-                  </div>
-                </div>
-              ) : (
-                filteredConversations.map((conversation) => (
+              {filteredConversations.map((conversation) => (
                 <button
                   key={conversation.id}
                   onClick={() => setSelectedConversation(conversation.id)}
@@ -135,8 +199,7 @@ export default function Messages() {
                     </div>
                   </div>
                 </button>
-                ))
-              )}
+              ))}
             </div>
           </div>
 

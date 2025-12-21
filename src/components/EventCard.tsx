@@ -1,7 +1,5 @@
-import { Calendar, MapPin, Heart, Share2, Users } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { addToBucketlist, removeFromBucketlist } from '../services/userService';
+import { Calendar, MapPin, Heart, Share2 } from 'lucide-react';
+import { useState } from 'react';
 
 interface EventCardProps {
   id: string;
@@ -13,8 +11,8 @@ interface EventCardProps {
   attendees: number;
   category: string;
   price: string;
+  isSoldOut?: boolean;
   onClick: (id: string) => void;
-  inBucketlist?: boolean; // Optional prop to indicate if already in bucketlist
 }
 
 export default function EventCard({
@@ -27,48 +25,10 @@ export default function EventCard({
   attendees,
   category,
   price,
-  onClick,
-  inBucketlist: initialInBucketlist = false
+  isSoldOut = false,
+  onClick
 }: EventCardProps) {
-  const { isAuthenticated } = useAuth();
-  const [isFavorited, setIsFavorited] = useState(initialInBucketlist);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Update favorite state when prop changes
-  useEffect(() => {
-    setIsFavorited(initialInBucketlist);
-  }, [initialInBucketlist]);
-
-  const handleLike = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    
-    if (!isAuthenticated) {
-      // Show login prompt or navigate to login
-      alert('Please log in to add events to your wishlist');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      if (isFavorited) {
-        // Remove from bucketlist
-        await removeFromBucketlist(parseInt(id));
-        setIsFavorited(false);
-      } else {
-        // Add to bucketlist
-        await addToBucketlist(parseInt(id));
-        setIsFavorited(true);
-      }
-    } catch (err: any) {
-      console.error('Error toggling favorite:', err);
-      // Don't update state on error
-      if (err.message && !err.message.includes('already in bucketlist')) {
-        alert(err.message || 'Failed to update wishlist');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [isFavorited, setIsFavorited] = useState(false);
 
   return (
     <div
@@ -79,19 +39,18 @@ export default function EventCard({
         <img
           src={image}
           alt={title}
-          loading="lazy"
-          decoding="async"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80 group-hover:opacity-100"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/20"></div>
         <div className="absolute top-1 sm:top-1.5 md:top-2 lg:top-3 right-1 sm:right-1.5 md:right-2 lg:right-3 flex flex-col space-y-1 sm:space-y-1.5 md:space-y-2">
           <button
-            onClick={handleLike}
-            disabled={isLoading}
-            className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 lg:w-9 lg:h-9 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            title={isFavorited ? 'Remove from wishlist' : 'Add to wishlist'}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsFavorited(!isFavorited);
+            }}
+            className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 lg:w-9 lg:h-9 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 transition-colors shadow-lg"
           >
-            <Heart className={`w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 lg:w-5 lg:h-5 transition-all ${isFavorited ? 'fill-red-500 text-red-500' : 'text-gray-600 dark:text-gray-400'}`} />
+            <Heart className={`w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 lg:w-5 lg:h-5 ${isFavorited ? 'fill-red-500 text-red-500' : 'text-gray-600 dark:text-gray-400'}`} />
           </button>
         </div>
         <div className="absolute top-1 sm:top-1.5 md:top-2 lg:top-3 left-1 sm:left-1.5 md:left-2 lg:left-3">
@@ -99,7 +58,13 @@ export default function EventCard({
             {category}
           </span>
         </div>
-        {price === 'Free' ? (
+        {isSoldOut ? (
+          <div className="absolute bottom-1 sm:bottom-1.5 md:bottom-2 lg:bottom-3 left-1 sm:left-1.5 md:left-2 lg:left-3">
+            <span className="px-1.5 py-0.5 sm:px-2 sm:py-0.5 md:px-2.5 md:py-1 lg:px-3 lg:py-1 bg-red-500/90 backdrop-blur-sm text-white text-[9px] sm:text-[10px] md:text-xs font-bold rounded-full shadow-lg">
+              SOLD OUT
+            </span>
+          </div>
+        ) : price === 'Free' ? (
           <div className="absolute bottom-1 sm:bottom-1.5 md:bottom-2 lg:bottom-3 left-1 sm:left-1.5 md:left-2 lg:left-3">
             <span className="px-1.5 py-0.5 sm:px-2 sm:py-0.5 md:px-2.5 md:py-1 lg:px-3 lg:py-1 bg-green-500/90 backdrop-blur-sm text-white text-[9px] sm:text-[10px] md:text-xs font-bold rounded-full shadow-lg">
               FREE
@@ -115,9 +80,9 @@ export default function EventCard({
       </div>
 
       <div className="p-2 sm:p-2.5 md:p-3 lg:p-5">
-  <h6 className="font-bold text-[13px] md:text-[20px] text-gray-900 dark:text-white mb-1 sm:mb-1.5 md:mb-2 lg:mb-3 truncate transition-colors" style={{ color: '' }} onMouseEnter={(e) => e.currentTarget.style.color = '#27aae2'} onMouseLeave={(e) => e.currentTarget.style.color = ''}>
+        <h3 className="font-bold text-[7px] sm:text-sm md:text-base lg:text-lg text-gray-900 dark:text-white mb-1 sm:mb-1.5 md:mb-2 lg:mb-3 truncate transition-colors" style={{ color: '' }} onMouseEnter={(e) => e.currentTarget.style.color = '#27aae2'} onMouseLeave={(e) => e.currentTarget.style.color = ''}>
           {title}
-        </h6>
+        </h3>
 
         <div className="space-y-0.5 sm:space-y-1 md:space-y-1.5 lg:space-y-2 text-[10px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-400">
           <div className="flex items-center space-x-1 sm:space-x-1.5 md:space-x-2">
@@ -129,10 +94,24 @@ export default function EventCard({
             <span className="line-clamp-1 text-[8px] sm:text-xs md:text-sm">{location}</span>
           </div>
           <div className="flex items-center space-x-1 sm:space-x-1.5 md:space-x-2">
-            <Users className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4 flex-shrink-0" style={{ color: '#27aae2' }} />
-            <span className="text-[8px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-400 font-medium">
-              {attendees} {attendees === 1 ? 'attendee' : 'attendees'}
-            </span>
+            <div className="flex -space-x-1 sm:-space-x-1.5 md:-space-x-2">
+              <img
+                src={`https://i.pravatar.cc/150?img=${(parseInt(id) * 3) % 70}`}
+                alt="Attendee"
+                className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 rounded-full border border-white dark:border-gray-800"
+              />
+              <img
+                src={`https://i.pravatar.cc/150?img=${(parseInt(id) * 3 + 1) % 70}`}
+                alt="Attendee"
+                className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 rounded-full border border-white dark:border-gray-800"
+              />
+              <img
+                src={`https://i.pravatar.cc/150?img=${(parseInt(id) * 3 + 2) % 70}`}
+                alt="Attendee"
+                className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 rounded-full border border-white dark:border-gray-800"
+              />
+            </div>
+            <span className="text-[8px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-400">+{attendees - 3} attending</span>
           </div>
         </div>
       </div>
@@ -149,14 +128,12 @@ export default function EventCard({
             });
           }
         }}
-        className="absolute bottom-2 sm:bottom-2.5 md:bottom-3 lg:bottom-5 right-1 sm:right-4 md:right-3 lg:right-5 w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 lg:w-9 lg:h-9 text-white rounded-full flex items-center justify-center shadow-lg z-10
-        md:opacity-0 md:group-hover:opacity-100 md:transition-opacity md:duration-300
-        opacity-100"
+        className="absolute bottom-2 sm:bottom-2.5 md:bottom-3 lg:bottom-5 right-2 sm:right-2.5 md:right-3 lg:right-5 w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 lg:w-9 lg:h-9 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg z-10"
         style={{ backgroundColor: '#27aae2' }}
         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1a8ec4'}
         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#27aae2'}
       >
-        <Share2 className="w-2 h-2 sm:w-2.5 sm:h-2.5 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4" />
+        <Share2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4" />
       </button>
     </div>
   );

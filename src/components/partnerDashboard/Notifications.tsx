@@ -327,6 +327,14 @@ export default function Notifications() {
                         <span className="text-xs text-gray-500 dark:text-gray-500">
                           {formatDate(notification.created_at)}
                         </span>
+                        {notification.action_url && notification.action_text && (
+                          <a
+                            href={notification.action_url}
+                            className="text-xs text-[#27aae2] hover:text-[#1e8bb8] font-medium"
+                          >
+                            {notification.action_text} →
+                          </a>
+                        )}
                       </div>
                     </div>
                   </div>

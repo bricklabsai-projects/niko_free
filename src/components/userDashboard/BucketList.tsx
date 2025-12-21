@@ -1,4 +1,4 @@
-import { Calendar, MapPin, Heart, Search, SlidersHorizontal, Grid3x3, List, DollarSign, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Calendar, MapPin, Heart, Search, SlidersHorizontal, Grid3x3, List, DollarSign, AlertCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getBucketlist, addToBucketlist, removeFromBucketlist } from '../../services/userService';
 import { API_BASE_URL } from '../../config/api';
@@ -16,10 +16,9 @@ interface Event {
 
 interface BucketListProps {
   onEventClick: (event: Event) => void;
-  onBack?: () => void;
 }
 
-export default function BucketList({ onEventClick, onBack }: BucketListProps) {
+export default function BucketList({ onEventClick }: BucketListProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'available' | 'expired'>('all');
@@ -46,14 +45,10 @@ export default function BucketList({ onEventClick, onBack }: BucketListProps) {
         return {
           id: event.id,
           title: event.title || 'Event',
-          image: event.poster_image 
-            ? (event.poster_image.startsWith('http') 
-                ? event.poster_image 
-                : `${API_BASE_URL}${event.poster_image.startsWith('/') ? '' : '/'}${event.poster_image}`)
-            : 'https://images.pexels.com/photos/1105666/pexels-photo-1105666.jpeg?auto=compress&cs=tinysrgb&w=400',
+          image: event.poster_image ? `${API_BASE_URL}/uploads/${event.poster_image}` : '',
           date: startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
           location: event.venue_name || event.venue_address || 'Online',
-          price: event.is_free ? 'Free' : (event.ticket_types?.[0]?.price ? `KES ${parseFloat(event.ticket_types[0].price).toLocaleString()}` : 'TBA'),
+          price: event.is_free ? 'Free' : (event.ticket_types?.[0]?.price ? `KES ${event.ticket_types[0].price.toLocaleString()}` : 'TBA'),
           isOutdated: isOutdated,
           category: event.category?.name || 'General'
         };
@@ -107,17 +102,6 @@ export default function BucketList({ onEventClick, onBack }: BucketListProps) {
 
   return (
     <div className="space-y-6">
-      {/* Back Button */}
-      {onBack && (
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-[#27aae2] transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span>Back to Events</span>
-        </button>
-      )}
-
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

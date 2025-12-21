@@ -1,7 +1,7 @@
 import { Camera, MapPin, Calendar, Mail, Phone, Edit2, Save, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getUserProfile, updateUserProfile, uploadProfilePicture, getUserBookings, getBucketlist } from '../../services/userService';
-import { API_BASE_URL, getImageUrl } from '../../config/api';
+import { API_BASE_URL } from '../../config/api';
 
 export default function MyProfile() {
   const [isEditing, setIsEditing] = useState(false);
@@ -38,7 +38,7 @@ export default function MyProfile() {
         location: user.location || '',
         bio: user.bio || '',
         joinDate: user.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '',
-        avatar: user.profile_picture ? getImageUrl(user.profile_picture) : ''
+        avatar: user.profile_picture ? `${API_BASE_URL}/uploads/${user.profile_picture}` : ''
       });
       setEditedProfile({
         name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'User',
@@ -47,7 +47,7 @@ export default function MyProfile() {
         location: user.location || '',
         bio: user.bio || '',
         joinDate: user.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '',
-        avatar: user.profile_picture ? getImageUrl(user.profile_picture) : ''
+        avatar: user.profile_picture ? `${API_BASE_URL}/uploads/${user.profile_picture}` : ''
       });
     } catch (err: any) {
       console.error('Error fetching profile:', err);
@@ -65,27 +65,14 @@ export default function MyProfile() {
       const [firstName, ...lastNameParts] = editedProfile.name.split(' ');
       const lastName = lastNameParts.join(' ') || '';
       
-      const response = await updateUserProfile({
+      await updateUserProfile({
         first_name: firstName,
         last_name: lastName,
-        phone_number: editedProfile.phone || null,
-        location: editedProfile.location || null
+        phone_number: editedProfile.phone,
+        location: editedProfile.location
       });
       
-      // Refresh profile from API response to get the actual updated values
-      const updatedUser = response.user || response;
-      const updatedProfile = {
-        name: `${updatedUser.first_name || ''} ${updatedUser.last_name || ''}`.trim() || 'User',
-        email: updatedUser.email || '',
-        phone: updatedUser.phone_number || '',
-        location: updatedUser.location || '',
-        bio: updatedUser.bio || '',
-        joinDate: updatedUser.created_at ? new Date(updatedUser.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '',
-        avatar: updatedUser.profile_picture ? getImageUrl(updatedUser.profile_picture) : profile.avatar
-      };
-      
-      setProfile(updatedProfile);
-      setEditedProfile(updatedProfile);
+      setProfile(editedProfile);
       setIsEditing(false);
     } catch (err: any) {
       console.error('Error updating profile:', err);
@@ -108,7 +95,7 @@ export default function MyProfile() {
     try {
       setIsSaving(true);
       const response = await uploadProfilePicture(file);
-      const newAvatar = response.profile_picture ? getImageUrl(response.profile_picture) : profile.avatar;
+      const newAvatar = response.profile_picture ? `${API_BASE_URL}/uploads/${response.profile_picture}` : profile.avatar;
       
       setProfile({ ...profile, avatar: newAvatar });
       setEditedProfile({ ...editedProfile, avatar: newAvatar });
@@ -230,12 +217,9 @@ export default function MyProfile() {
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between -mt-16 mb-6">
             <div className="relative inline-block">
               <img
-                src={isEditing ? editedProfile.avatar : profile.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name)}&background=27aae2&color=fff&size=128`}
+                src={isEditing ? editedProfile.avatar : profile.avatar}
                 alt={profile.name}
                 className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name)}&background=27aae2&color=fff&size=128`;
-                }}
               />
               {isEditing && (
                 <label className="absolute bottom-2 right-2 p-2 bg-[#27aae2] text-white rounded-full hover:bg-[#1e8bb8] transition-colors shadow-lg cursor-pointer">

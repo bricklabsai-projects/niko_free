@@ -1,10 +1,7 @@
-import { Calendar, Users, Zap, Home, Bell, UserPlus, QrCode, Award, Menu, X, Search, User, Settings as SettingsIcon, LogOut, Moon, Sun, BarChart3, HelpCircle, AlertTriangle } from 'lucide-react';
+import { Calendar, Users, Zap, Home, Bell, UserPlus, QrCode, Award, Menu, X, Search, User, Settings as SettingsIcon, LogOut, Moon, Sun } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
-import { getPartnerToken, getPartner, getPartnerProfile, logoutPartner, getPartnerDashboard } from '../services/partnerService';
-import { getImageUrl, API_BASE_URL, API_ENDPOINTS } from '../config/api';
-import AskSupport from '../components/partnerDashboard/AskSupport';
 import Overview from '../components/partnerDashboard/Overview';
 import MyEvents from '../components/partnerDashboard/MyEvents';
 import Attendees from '../components/partnerDashboard/Attendees';
@@ -18,14 +15,15 @@ import Settings from '../components/partnerDashboard/Settings';
 import MyProfile from '../components/partnerDashboard/MyProfile';
 import CreateEvent from '../components/partnerDashboard/CreateEvent';
 import WithdrawFunds from '../components/partnerDashboard/WithdrawFunds';
-import Analytics from '../components/partnerDashboard/Analytics';
+import { getPartner, getPartnerProfile, logoutPartner, getPartnerToken } from '../services/partnerService';
 
 interface PartnerDashboardProps {
   onNavigate: (page: string) => void;
 }
 
 export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'events' | 'attendees' | 'boost' | 'analytics' | 'notifications' | 'roles' | 'scanner' | 'verification' | 'settings' | 'profile'>('overview');
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'overview' | 'events' | 'attendees' | 'boost' | 'notifications' | 'roles' | 'scanner' | 'verification' | 'settings' | 'profile'>('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [createEventOpen, setCreateEventOpen] = useState(false);
@@ -35,11 +33,6 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
   const { isDarkMode, toggleTheme } = useTheme();
   const [partnerData, setPartnerData] = useState<any>(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const [pendingEarnings, setPendingEarnings] = useState<number>(0);
-  const [availableBalance, setAvailableBalance] = useState(0);
-  const [showPasswordWarning, setShowPasswordWarning] = useState(false);
-  const [dashboardData, setDashboardData] = useState<any>(null);
-  const navigate = useNavigate();
 
   // Check authentication on mount
   useEffect(() => {
@@ -58,36 +51,10 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
           setPartnerData(cachedPartner);
         }
 
-        // Fetch dashboard data to get pending earnings
-        const dashboardDataResponse = await getPartnerDashboard();
-        setDashboardData(dashboardDataResponse);
-        if (dashboardDataResponse?.stats?.pending_earnings !== undefined) {
-          const pendingEarnings = parseFloat(dashboardDataResponse.stats.pending_earnings || 0);
-          setPendingEarnings(pendingEarnings);
-          setAvailableBalance(pendingEarnings);
-        }
-
-        // Then fetch fresh profile data
+        // Then fetch fresh data
         const response = await getPartnerProfile();
         if (response) {
-          const partner = response.partner || response;
-          
-          // Ensure logo is included - don't filter out valid logos
-          const updatedPartnerData = {
-            ...partner,
-            // Keep the logo field even if it exists, don't filter base64 here
-            logo: partner.logo || cachedPartner?.logo || null
-          };
-          
-          setPartnerData(updatedPartnerData);
-          
-          // Check if password needs to be changed (first login)
-          const hasSeenPasswordWarning = localStorage.getItem(`partner_password_warning_${partner.id}`);
-          
-          // Show warning if password_changed_at is null/undefined and user hasn't seen the warning
-          if (!partner.password_changed_at && !hasSeenPasswordWarning) {
-            setShowPasswordWarning(true);
-          }
+          setPartnerData(response.partner || response);
         }
       } catch (err: any) {
         console.error('Error fetching partner data:', err);
@@ -113,10 +80,9 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
     { id: 'events', label: 'Events', icon: Calendar },
     { id: 'attendees', label: 'Attendees', icon: Users },
     { id: 'boost', label: 'Boost Event', icon: Zap },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'roles', label: 'Assign Roles', icon: UserPlus },
-    // { id: 'scanner', label: 'Scan Tickets', icon: QrCode },
+    { id: 'scanner', label: 'Scan Tickets', icon: QrCode },
     { id: 'verification', label: 'Partner Verification', icon: Award }
   ];
 
@@ -215,17 +181,6 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
                     </li>
                   );
                 })}
-                {/* Contact Support Button */}
-                <li>
-                  <button
-                    onClick={() => setActiveTab('support')}
-                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium transition-all mt-4
-                      ${activeTab === 'support' ? 'bg-gradient-to-r from-[#27aae2] to-[#1e8bb8] text-white shadow-lg' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'}`}
-                  >
-                    <HelpCircle className="w-5 h-5" />
-                    <span>Contact Support</span>
-                  </button>
-                </li>
               </ul>
             </nav>
           </div>
@@ -289,15 +244,9 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
                     >
                       {partnerData?.logo ? (
                         <img 
-                          src={getImageUrl(partnerData.logo)}
+                          src={partnerData.logo.startsWith('http') ? partnerData.logo : `${import.meta.env.VITE_API_URL || 'http://localhost:5005'}/${partnerData.logo.replace(/^\/+/, '')}`}
                           alt={partnerData.business_name}
-                          loading="lazy"
-                          decoding="async"
                           className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
-                          onError={(e) => {
-                            // Fallback to UI Avatars if image fails to load
-                            (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerData?.business_name || 'Partner')}&background=27aae2&color=fff&size=128`;
-                          }}
                         />
                       ) : (
                         <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 bg-gradient-to-br from-[#27aae2] to-[#1e8bb8] rounded-full flex items-center justify-center">
@@ -317,31 +266,13 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
                     {/* Dropdown Menu */}
                     {accountMenuOpen && (
                       <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
-                        <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center gap-3">
-                          {partnerData?.logo ? (
-                            <img 
-                              src={getImageUrl(partnerData.logo)}
-                              alt={partnerData.business_name}
-                              loading="lazy"
-                              decoding="async"
-                              className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerData?.business_name || 'Partner')}&background=27aae2&color=fff&size=128`;
-                              }}
-                            />
-                          ) : (
-                            <div className="w-10 h-10 bg-gradient-to-br from-[#27aae2] to-[#1e8bb8] rounded-full flex items-center justify-center">
-                              <User className="w-5 h-5 text-white" />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                              {partnerData?.business_name || 'Partner Account'}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                              {partnerData?.email || 'Loading...'}
-                            </p>
-                          </div>
+                        <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                            {partnerData?.business_name || 'Partner Account'}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {partnerData?.email || 'Loading...'}
+                          </p>
                         </div>
                         <button 
                           onClick={() => {
@@ -399,7 +330,7 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
 
           {/* Content Area */}
           <div className="px-2 sm:px-4 lg:px-8 py-3 sm:py-4 lg:py-6 pt-[7.5rem] sm:pt-32 md:pt-20 lg:pt-24">
-            {activeTab === 'overview' && <Overview onWithdrawClick={() => setWithdrawOpen(true)} dashboardData={dashboardData} />}
+            {activeTab === 'overview' && <Overview onWithdrawClick={() => setWithdrawOpen(true)} />}
             {activeTab === 'events' && (
               <MyEvents 
                 onCreateEvent={() => setCreateEventOpen(true)}
@@ -408,16 +339,12 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
             )}
             {activeTab === 'attendees' && <Attendees />}
             {activeTab === 'boost' && <BoostEvent />}
-            {activeTab === 'analytics' && <Analytics />}
             {activeTab === 'notifications' && <Notifications />}
             {activeTab === 'roles' && <AssignRoles />}
             {activeTab === 'scanner' && <TicketScanner />}
             {activeTab === 'verification' && <PartnerVerification />}
-            {activeTab === 'settings' && <Settings />}
+            {activeTab === 'settings' && <Settings onNavigate={onNavigate} />}
             {activeTab === 'profile' && <MyProfile />}
-            {activeTab === 'support' && (
-              <AskSupport onSent={() => setActiveTab('overview')} />
-            )}
           </div>
         </main>
 
@@ -438,93 +365,9 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
         {/* Withdraw Funds Modal */}
         <WithdrawFunds 
           isOpen={withdrawOpen} 
-          onClose={() => {
-            setWithdrawOpen(false);
-            // Refresh dashboard data after withdrawal
-            const refreshData = async () => {
-              try {
-                const dashboardData = await getPartnerDashboard();
-                if (dashboardData?.stats?.pending_earnings !== undefined) {
-                  setPendingEarnings(dashboardData.stats.pending_earnings);
-                }
-              } catch (err) {
-                console.error('Error refreshing dashboard:', err);
-              }
-            };
-            refreshData();
-          }}
-          availableBalance={availableBalance}
+          onClose={() => setWithdrawOpen(false)}
+          availableBalance={36000}
         />
-
-        {/* Password Change Warning Modal */}
-        {showPasswordWarning && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border-4" style={{ borderColor: '#27aae2' }}>
-              {/* Header with blue gradient */}
-              <div className="px-6 py-4 flex items-center space-x-3" style={{ background: 'linear-gradient(to right, #27aae2, #1a8ec4)' }}>
-                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                  <AlertTriangle className="w-7 h-7 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-white">Security Alert</h2>
-                  <p className="text-sm text-blue-100">Action Required</p>
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="p-6">
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                    Update Your Password
-                  </h3>
-                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
-                    For your security, please update your default password immediately. This is required for all new partner accounts.
-                  </p>
-                  <div className="border-l-4 p-4 rounded" style={{ backgroundColor: '#e6f7ff', borderColor: '#27aae2' }}>
-                    <p className="text-sm font-medium" style={{ color: '#1a8ec4' }}>
-                      ⚠️ Your account is using a default password. Please change it to secure your account.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Action buttons */}
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <button
-                    onClick={() => {
-                      if (partnerData?.id) {
-                        localStorage.setItem(`partner_password_warning_${partnerData.id}`, 'true');
-                      }
-                      setShowPasswordWarning(false);
-                      setActiveTab('settings');
-                    }}
-                    className="flex-1 px-6 py-3 text-white rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl flex items-center justify-center space-x-2"
-                    style={{ background: 'linear-gradient(to right, #27aae2, #1a8ec4)' }}
-                    onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
-                    onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                  >
-                    <SettingsIcon className="w-5 h-5" />
-                    <span>Update Password Now</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (partnerData?.id) {
-                        localStorage.setItem(`partner_password_warning_${partnerData.id}`, 'true');
-                      }
-                      setShowPasswordWarning(false);
-                    }}
-                    className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-all"
-                  >
-                    Later
-                  </button>
-                </div>
-
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-4 text-center">
-                  You can update your password anytime in Settings → Security
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
       </div>
     </div>

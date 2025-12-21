@@ -1,6 +1,6 @@
 import { Calendar, MapPin, Clock, Users, Share2, Heart, Download, ArrowLeft, Ticket as TicketIcon, Star, Plus, MessageSquare, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { addToBucketlist, removeFromBucketlist, getBucketlist, getEventReviews, addEventReview, updateEventReview, deleteEventReview, downloadTicket } from '../../services/userService';
+import { addToBucketlist, removeFromBucketlist, getBucketlist, getEventReviews, addEventReview, updateEventReview, deleteEventReview } from '../../services/userService';
 import { API_BASE_URL, API_ENDPOINTS } from '../../config/api';
 import { getAuthHeaders } from '../../services/authService';
 
@@ -57,66 +57,20 @@ export default function EventDetail({ event, onBack }: EventDetailProps) {
   const fetchEventDetails = async () => {
     try {
       const eventId = Number(event.id);
-      if (!eventId || isNaN(eventId)) {
-        return; // Invalid event ID, don't fetch
-      }
-      
       const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.events.detail(eventId)}`, {
         headers: getAuthHeaders()
       });
       const data = await response.json();
       
-      if (!response.ok) {
-        // If event not found, silently return (don't log to console)
-        if (response.status === 404) {
-          return;
-        }
-        throw new Error(data.error || 'Failed to fetch event details');
-      }
-      
-      if (data.event) {
+      if (response.ok && data.event) {
         const evt = data.event;
-        // Format time from start_date
-        let formattedTime = 'TBA';
-        if (evt.start_date) {
-          try {
-            const startDate = new Date(evt.start_date);
-            if (!isNaN(startDate.getTime())) {
-              formattedTime = startDate.toLocaleTimeString('en-US', { 
-                hour: 'numeric', 
-                minute: '2-digit',
-                hour12: true 
-              });
-              // If there's an end_date, show time range
-              if (evt.end_date) {
-                try {
-                  const endDate = new Date(evt.end_date);
-                  if (!isNaN(endDate.getTime())) {
-                    const endTime = endDate.toLocaleTimeString('en-US', { 
-                      hour: 'numeric', 
-                      minute: '2-digit',
-                      hour12: true 
-                    });
-                    formattedTime = `${formattedTime} - ${endTime}`;
-                  }
-                } catch (err) {
-                  // Just use start time if end date parsing fails
-                }
-              }
-            }
-          } catch (err) {
-            console.error('Error formatting time:', err);
-          }
-        }
-        
         setEventData({
           ...event,
           title: evt.title || event.title,
           description: evt.description || event.description,
           image: evt.poster_image ? `${API_BASE_URL}/uploads/${evt.poster_image}` : event.image,
           category: evt.category?.name || event.category,
-          attendees: evt.attendee_count || event.attendees || 0,
-          time: formattedTime,
+          attendees: evt.attendee_count || event.attendees,
           organizer: evt.partner ? {
             name: evt.partner.business_name || 'Event Organizer',
             avatar: evt.partner.logo ? `${API_BASE_URL}/uploads/${evt.partner.logo}` : ''
@@ -131,12 +85,6 @@ export default function EventDetail({ event, onBack }: EventDetailProps) {
   const fetchReviews = async () => {
     try {
       const eventId = Number(event.id);
-      if (!eventId || isNaN(eventId)) {
-        setReviews([]);
-        setAverageRating(0);
-        return; // Invalid event ID, don't fetch
-      }
-      
       const response = await getEventReviews(eventId);
       setReviews(response.reviews || []);
       setAverageRating(response.average_rating || 0);
@@ -158,16 +106,11 @@ export default function EventDetail({ event, onBack }: EventDetailProps) {
             }
           }
         } catch (err) {
-          // User not logged in or error - silently ignore
+          // User not logged in or error
         }
       }
-    } catch (err: any) {
-      // If event not found, just set empty reviews (don't log error)
-      if (err.message && err.message.includes('Event not found')) {
-        setReviews([]);
-        setAverageRating(0);
-      }
-      // Silently ignore other errors for reviews
+    } catch (err) {
+      console.error('Error fetching reviews:', err);
     }
   };
 
@@ -265,29 +208,6 @@ export default function EventDetail({ event, onBack }: EventDetailProps) {
     } catch (err: any) {
       console.error('Error deleting review:', err);
       alert(err.message || 'Failed to delete review');
-    }
-  };
-
-  const handleDownloadTicket = async () => {
-    if (!event.ticketId) {
-      alert('No ticket available for this event');
-      return;
-    }
-
-    try {
-      // event.id should be the booking ID (when coming from EventsBooked)
-      const blob = await downloadTicket(Number(event.id));
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `ticket-${event.ticketId}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (err: any) {
-      console.error('Error downloading ticket:', err);
-      alert('Failed to download ticket: ' + (err.message || 'Unknown error'));
     }
   };
 
@@ -534,14 +454,11 @@ export default function EventDetail({ event, onBack }: EventDetailProps) {
                 </div>
 
                 <div className="space-y-2">
-                  {/* <button className="w-full py-2.5 sm:py-3 bg-[#27aae2] text-white rounded-lg font-semibold hover:bg-[#1e8bb8] transition-colors flex items-center justify-center gap-2">
+                  <button className="w-full py-2.5 sm:py-3 bg-[#27aae2] text-white rounded-lg font-semibold hover:bg-[#1e8bb8] transition-colors flex items-center justify-center gap-2">
                     <TicketIcon className="w-4 h-4" />
                     <span>View Ticket</span>
-                  </button> */}
-                  <button 
-                    onClick={handleDownloadTicket}
-                    className="w-full py-2.5 sm:py-3 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:border-[#27aae2] hover:text-[#27aae2] transition-all flex items-center justify-center gap-2"
-                  >
+                  </button>
+                  <button className="w-full py-2.5 sm:py-3 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:border-[#27aae2] hover:text-[#27aae2] transition-all flex items-center justify-center gap-2">
                     <Download className="w-4 h-4" />
                     <span>Download</span>
                   </button>

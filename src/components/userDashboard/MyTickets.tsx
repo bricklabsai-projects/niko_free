@@ -1,5 +1,5 @@
 import { Calendar, MapPin, Download, QrCode, Share2, Ticket, Clock, CheckCircle, XCircle } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getUserBookings, getTicketQRCode, downloadTicket } from '../../services/userService';
 import { API_BASE_URL } from '../../config/api';
 
@@ -14,10 +14,11 @@ interface TicketData {
   ticketId: string;
   ticketType: string;
   price: string;
-  status: 'active' | 'used' | 'cancelled';
+  status: 'active' | 'used' | 'cancelled' | 'pending';
   qrCode?: string;
   orderNumber: string;
   purchaseDate: string;
+  reservedUntil?: string | null;
 }
 
 export default function MyTickets() {
@@ -27,11 +28,7 @@ export default function MyTickets() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchTickets();
-  }, [selectedFilter]);
-
-  const fetchTickets = async () => {
+  const fetchTickets = useCallback(async () => {
     try {
       setIsLoading(true);
       setError('');
@@ -45,24 +42,21 @@ export default function MyTickets() {
       // Transform API data to component format
       // Only show bookings that have tickets (payment completed)
       // This ensures users can't download tickets before payment
-      // IMPORTANT: Filter out ALL unpaid/pending bookings regardless of status filter
+      const formattedTickets: TicketData[] = (response.bookings || []).map((booking: any) => {
+      // IMPORTANT: Filter out pending/unpaid bookings - only show confirmed/paid tickets
       const formattedTickets: TicketData[] = (response.bookings || [])
         .filter((booking: any) => {
-          // Only show confirmed bookings with tickets that have been paid
-          // This prevents showing unpaid tickets in "My Tickets"
-          const hasTickets = booking.tickets && Array.isArray(booking.tickets) && booking.tickets.length > 0;
-          const isConfirmed = booking.status === 'confirmed';
-          const isPaid = booking.payment_status === 'paid';
-          
-          // Must have all three: confirmed status, paid status, and actual tickets
-          return isConfirmed && isPaid && hasTickets;
+          // Only include confirmed bookings or paid bookings
+          // Exclude pending bookings that haven't been paid
+          return booking.status === 'confirmed' || 
+                 (booking.status !== 'pending' || booking.payment_status === 'paid');
         })
         .map((booking: any) => {
         const event = booking.event || {};
         const firstTicket = booking.tickets?.[0] || {};
         const ticketType = firstTicket.ticket_type || {};
         
-        // Determine status
+        // Determine status - no pending status here since we filtered them out
         let status: 'active' | 'used' | 'cancelled' = 'active';
         if (booking.status === 'cancelled') {
           status = 'cancelled';
@@ -93,7 +87,8 @@ export default function MyTickets() {
           price: booking.total_amount > 0 ? `KES ${booking.total_amount.toLocaleString()}` : 'Free',
           status: status,
           orderNumber: booking.booking_number || `ORD-${booking.id}`,
-          purchaseDate: booking.created_at ? new Date(booking.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''
+          purchaseDate: booking.created_at ? new Date(booking.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '',
+          reservedUntil: null // Not needed for confirmed tickets
         };
       });
       
@@ -104,7 +99,35 @@ export default function MyTickets() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedFilter]);
+
+  useEffect(() => {
+    fetchTickets();
+    
+    // Set up interval to check and release expired bookings every 30 seconds
+    const interval = setInterval(async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/tickets/release-expired`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.released_count > 0) {
+            // Refresh tickets if any were released
+            fetchTickets();
+          }
+        }
+      } catch (err) {
+        // Silently fail - this is a background task
+        console.error('Error releasing expired bookings:', err);
+      }
+    }, 30000); // Check every 30 seconds
+    
+    return () => clearInterval(interval);
+  }, [fetchTickets]);
 
   const filteredTickets = tickets.filter(ticket => {
     if (selectedFilter === 'all') return true;
@@ -318,13 +341,14 @@ export default function MyTickets() {
                   </div>
                 </div>
 
+
                 {/* Action Buttons - Mobile Optimized */}
                 <div className="flex gap-1.5 sm:gap-2 pt-2.5 sm:pt-3 border-t border-gray-200 dark:border-gray-700">
                   <button
                     onClick={() => handleViewQR(ticket)}
-                    disabled={ticket.status === 'cancelled'}
+                    disabled={ticket.status === 'cancelled' || ticket.status === 'pending'}
                     className={`flex-1 py-1.5 sm:py-2 rounded-md sm:rounded-lg font-semibold text-xs sm:text-sm transition-all flex items-center justify-center space-x-1 sm:space-x-1.5 ${
-                      ticket.status === 'cancelled'
+                      ticket.status === 'cancelled' || ticket.status === 'pending'
                         ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                         : 'bg-[#27aae2] text-white hover:bg-[#1e8bb8]'
                     }`}

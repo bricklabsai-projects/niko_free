@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { MapPin, Calendar, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import EventCard from '../components/EventCard';
-import { getEvents } from '../services/eventService';
 
 interface ThisWeekendProps {
   onNavigate: (page: string) => void;
@@ -16,99 +15,210 @@ export default function ThisWeekend({ onNavigate, onEventClick }: ThisWeekendPro
   const [selectedDay, setSelectedDay] = useState('All');
   const [showNextWeekLeftArrow, setShowNextWeekLeftArrow] = useState(false);
   const nextWeekRef = React.useRef<HTMLDivElement>(null);
-  const [weekendEvents, setWeekendEvents] = useState<any[]>([]);
-  const [nextWeekEvents, setNextWeekEvents] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+
+  const allEvents = [
+    {
+      id: '1',
+      title: 'Weekend Art Exhibition',
+      image: 'https://images.pexels.com/photos/1839919/pexels-photo-1839919.jpeg?auto=compress&cs=tinysrgb&w=600',
+      date: 'Sat, Nov 2',
+      day: 'Saturday',
+      time: '10:00 AM',
+      location: 'National Museum',
+      attendees: 230,
+      category: 'Culture',
+      price: 'KES 300'
+    },
+    {
+      id: '2',
+      title: 'Jazz Night Live',
+      image: 'https://images.pexels.com/photos/1481308/pexels-photo-1481308.jpeg?auto=compress&cs=tinysrgb&w=600',
+      date: 'Sat, Nov 2',
+      day: 'Saturday',
+      time: '8:00 PM',
+      location: 'Alliance Française',
+      attendees: 189,
+      category: 'Music',
+      price: 'KES 800'
+    },
+    {
+      id: '3',
+      title: 'Morning Yoga in the Park',
+      image: 'https://images.pexels.com/photos/3822647/pexels-photo-3822647.jpeg?auto=compress&cs=tinysrgb&w=600',
+      date: 'Sun, Nov 3',
+      day: 'Sunday',
+      time: '6:00 AM',
+      location: 'Karura Forest',
+      attendees: 45,
+      category: 'Fitness',
+      price: 'Free'
+    },
+    {
+      id: '4',
+      title: 'Tech Thursday Meetup',
+      image: 'https://images.pexels.com/photos/1181406/pexels-photo-1181406.jpeg?auto=compress&cs=tinysrgb&w=600',
+      date: 'Thu, Oct 31',
+      day: 'Thursday',
+      time: '6:00 PM',
+      location: 'iHub Nairobi',
+      attendees: 120,
+      category: 'Technology',
+      price: 'Free'
+    },
+    {
+      id: '5',
+      title: 'Friday Night Comedy',
+      image: 'https://images.pexels.com/photos/713149/pexels-photo-713149.jpeg?auto=compress&cs=tinysrgb&w=600',
+      date: 'Fri, Nov 1',
+      day: 'Friday',
+      time: '8:30 PM',
+      location: 'Comedy Club Kenya',
+      attendees: 156,
+      category: 'Entertainment',
+      price: 'KES 500'
+    },
+    {
+      id: '6',
+      title: 'Thursday Food Market',
+      image: 'https://images.pexels.com/photos/1435904/pexels-photo-1435904.jpeg?auto=compress&cs=tinysrgb&w=600',
+      date: 'Thu, Oct 31',
+      day: 'Thursday',
+      time: '12:00 PM',
+      location: 'Village Market',
+      attendees: 340,
+      category: 'Food',
+      price: 'Free'
+    },
+    {
+      id: '7',
+      title: 'Friday Beach Cleanup',
+      image: 'https://images.pexels.com/photos/2422915/pexels-photo-2422915.jpeg?auto=compress&cs=tinysrgb&w=600',
+      date: 'Fri, Nov 1',
+      day: 'Friday',
+      time: '8:00 AM',
+      location: 'Diani Beach',
+      attendees: 78,
+      category: 'Community',
+      price: 'Free'
+    },
+    {
+      id: '8',
+      title: 'Sunday Brunch & Music',
+      image: 'https://images.pexels.com/photos/1267320/pexels-photo-1267320.jpeg?auto=compress&cs=tinysrgb&w=600',
+      date: 'Sun, Nov 3',
+      day: 'Sunday',
+      time: '11:00 AM',
+      location: 'Java House Karen',
+      attendees: 95,
+      category: 'Food',
+      price: 'KES 1200'
+    }
+  ];
 
   const days = ['All', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-  // Helper to map API event to EventCard shape
-  const mapEventToCard = (e: any) => {
-    const start = new Date(e.start_date);
-    const weekdayName = start.toLocaleDateString('en-US', { weekday: 'long' }); // Thursday, Friday, etc.
-    const dateLabel = start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); // Thu, Nov 2
-    const timeLabel = start.toLocaleTimeString('en-KE', { hour: 'numeric', minute: '2-digit' });
-    const categoryName = e.category?.name || 'Other';
-    const isFree = e.is_free === true;
-    const ticketTypes = e.ticket_types || [];
-    let priceLabel = 'Paid';
-    if (isFree) {
-      priceLabel = 'Free';
-    } else if (ticketTypes.length > 0) {
-      const minPrice = Math.min(...ticketTypes.map((t: any) => t.price || 0));
-      if (minPrice > 0) {
-        priceLabel = `KES ${Math.round(minPrice).toLocaleString()}`;
-      }
+  // Next week events
+  const nextWeekEvents = [
+    {
+      id: '9',
+      title: 'Business Networking Breakfast',
+      image: 'https://images.pexels.com/photos/1595385/pexels-photo-1595385.jpeg?auto=compress&cs=tinysrgb&w=600',
+      date: 'Mon, Nov 4',
+      day: 'Monday',
+      time: '7:30 AM',
+      location: 'Radisson Blu Hotel',
+      attendees: 85,
+      category: 'Business',
+      price: 'KES 800'
+    },
+    {
+      id: '10',
+      title: 'Salsa Dance Classes',
+      image: 'https://images.pexels.com/photos/3822647/pexels-photo-3822647.jpeg?auto=compress&cs=tinysrgb&w=600',
+      date: 'Tue, Nov 5',
+      day: 'Tuesday',
+      time: '7:00 PM',
+      location: 'Dance Studio Nairobi',
+      attendees: 42,
+      category: 'Dance',
+      price: 'KES 1500'
+    },
+    {
+      id: '11',
+      title: 'Photography Workshop',
+      image: 'https://images.pexels.com/photos/1983037/pexels-photo-1983037.jpeg?auto=compress&cs=tinysrgb&w=600',
+      date: 'Wed, Nov 6',
+      day: 'Wednesday',
+      time: '2:00 PM',
+      location: 'Nairobi Gallery',
+      attendees: 65,
+      category: 'Photography',
+      price: 'KES 2000'
+    },
+    {
+      id: '12',
+      title: 'Stand-Up Comedy Night',
+      image: 'https://images.pexels.com/photos/713149/pexels-photo-713149.jpeg?auto=compress&cs=tinysrgb&w=600',
+      date: 'Thu, Nov 7',
+      day: 'Thursday',
+      time: '8:00 PM',
+      location: 'Laugh Inn',
+      attendees: 178,
+      category: 'Entertainment',
+      price: 'KES 600'
+    },
+    {
+      id: '13',
+      title: 'Digital Marketing Seminar',
+      image: 'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=600',
+      date: 'Fri, Nov 8',
+      day: 'Friday',
+      time: '9:00 AM',
+      location: 'Nairobi Garage',
+      attendees: 210,
+      category: 'Business',
+      price: 'KES 3500'
+    },
+    {
+      id: '14',
+      title: 'Live Jazz & Dinner',
+      image: 'https://images.pexels.com/photos/1481308/pexels-photo-1481308.jpeg?auto=compress&cs=tinysrgb&w=600',
+      date: 'Fri, Nov 8',
+      day: 'Friday',
+      time: '7:30 PM',
+      location: 'The Alchemist',
+      attendees: 134,
+      category: 'Music',
+      price: 'KES 2500'
+    },
+    {
+      id: '15',
+      title: 'Cycling Tour - Karura Forest',
+      image: 'https://images.pexels.com/photos/100582/pexels-photo-100582.jpeg?auto=compress&cs=tinysrgb&w=600',
+      date: 'Sat, Nov 9',
+      day: 'Saturday',
+      time: '6:00 AM',
+      location: 'Karura Forest',
+      attendees: 98,
+      category: 'Sports',
+      price: 'KES 500'
+    },
+    {
+      id: '16',
+      title: 'Wine Tasting Experience',
+      image: 'https://images.pexels.com/photos/1267320/pexels-photo-1267320.jpeg?auto=compress&cs=tinysrgb&w=600',
+      date: 'Sat, Nov 9',
+      day: 'Saturday',
+      time: '4:00 PM',
+      location: 'Westlands Wine Bar',
+      attendees: 56,
+      category: 'Food',
+      price: 'KES 3000'
     }
-    const attendees = (e.attendee_count ?? 20);
-    const locationLabel = e.venue_name || e.location?.name || 'TBA';
-
-    return {
-      id: String(e.id),
-      title: e.title,
-      image: e.poster_image || 'https://images.pexels.com/photos/1105666/pexels-photo-1105666.jpeg?auto=compress&cs=tinysrgb&w=800',
-      date: dateLabel,
-      day: weekdayName,
-      time: timeLabel,
-      location: locationLabel,
-      attendees,
-      category: categoryName,
-      price: priceLabel,
-    };
-  };
-
-  // Fetch events for this weekend (Thu–Sun) and next week
-  useEffect(() => {
-    const fetchThisWeekend = async () => {
-      try {
-        setLoading(true);
-        const data = await getEvents({ per_page: 200 });
-        const events = data.events || [];
-
-        const today = new Date();
-        const base = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        const day = base.getDay(); // 0=Sun ... 6=Sat
-
-        // Upcoming Thursday (4)
-        const daysUntilThursday = (4 - day + 7) % 7;
-        const thursday = new Date(base);
-        thursday.setDate(base.getDate() + daysUntilThursday);
-
-        const mondayAfter = new Date(thursday);
-        mondayAfter.setDate(thursday.getDate() + 4); // Thu–Sun inclusive
-
-        const nextWeekStart = new Date(mondayAfter);
-        const nextWeekEnd = new Date(nextWeekStart);
-        nextWeekEnd.setDate(nextWeekStart.getDate() + 7); // Next Mon–Sun
-
-        const weekendFiltered = events.filter((e: any) => {
-          if (!e.start_date) return false;
-          const d = new Date(e.start_date);
-          return d >= thursday && d < mondayAfter;
-        }).map(mapEventToCard);
-
-        const nextWeekFiltered = events.filter((e: any) => {
-          if (!e.start_date) return false;
-          const d = new Date(e.start_date);
-          return d >= nextWeekStart && d < nextWeekEnd;
-        }).map(mapEventToCard);
-
-        setWeekendEvents(weekendFiltered);
-        setNextWeekEvents(nextWeekFiltered);
-      } catch (err: any) {
-        console.error('Failed to fetch weekend events:', err);
-        setError(err.message || 'Failed to load events');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchThisWeekend();
-  }, []);
+  ];
 
   // Filter events based on selected day and category
-  const filteredWeekendEvents = weekendEvents.filter(event => {
+  const weekendEvents = allEvents.filter(event => {
     const matchesDay = selectedDay === 'All' || event.day === selectedDay;
     const matchesCategory = selectedCategory === 'All' || event.category === selectedCategory;
     return matchesDay && matchesCategory;
@@ -171,19 +281,19 @@ export default function ThisWeekend({ onNavigate, onEventClick }: ThisWeekendPro
         </div>
 
         {/* Marketing Banner */}
-        {/* <div 
+        <div 
           className="relative overflow-hidden rounded-3xl mb-12 shadow-2xl"
           style={{
             background: 'linear-gradient(135deg, #27aae2 0%, #1a8ec4 100%)'
           }}
           data-aos="fade-up"
         >
-          
+          {/* Decorative circles */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white opacity-10 rounded-full translate-y-1/2 -translate-x-1/2"></div>
           
           <div className="relative px-6 sm:px-12 py-8 sm:py-12 flex flex-col md:flex-row items-center justify-between gap-6">
-            
+            {/* Left Content */}
             <div className="flex-1 text-center md:text-left">
               <div className="inline-block px-4 py-1 bg-white/20 backdrop-blur-sm rounded-full mb-4">
                 <span className="text-white text-sm font-semibold">🎉 Special Offer</span>
@@ -210,7 +320,7 @@ export default function ThisWeekend({ onNavigate, onEventClick }: ThisWeekendPro
               </div>
             </div>
 
-            
+            {/* Right Image/Icon */}
             <div className="hidden lg:block flex-shrink-0">
               <div className="w-48 h-48 relative">
                 <div className="absolute inset-0 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
@@ -222,9 +332,9 @@ export default function ThisWeekend({ onNavigate, onEventClick }: ThisWeekendPro
               </div>
             </div>
           </div>
-        </div> */}
+        </div>
 
-       
+        {/* Day Selection Buttons */}
         <div className="flex flex-wrap gap-3 mb-8 justify-center" data-aos="fade-up">
           {days.map((day) => (
             <button
@@ -254,12 +364,7 @@ export default function ThisWeekend({ onNavigate, onEventClick }: ThisWeekendPro
 
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-aos="fade-up" data-aos-delay="100">
-          {loading && filteredWeekendEvents.length === 0 && (
-            <div className="col-span-full text-center py-12">
-              <p className="text-gray-600 dark:text-gray-400 text-lg transition-colors duration-200">Loading weekend events...</p>
-            </div>
-          )}
-          {!loading && filteredWeekendEvents.map((event) => (
+          {weekendEvents.map((event) => (
             <EventCard
               key={event.id}
               {...event}
@@ -268,7 +373,7 @@ export default function ThisWeekend({ onNavigate, onEventClick }: ThisWeekendPro
           ))}
         </div>
 
-        {!loading && filteredWeekendEvents.length === 0 && (
+        {weekendEvents.length === 0 && (
           <div className="text-center py-12">
             <p className="text-gray-600 dark:text-gray-400 text-lg transition-colors duration-200">No events found for this weekend</p>
           </div>
@@ -325,7 +430,7 @@ export default function ThisWeekend({ onNavigate, onEventClick }: ThisWeekendPro
         </div>
       </div>
 
-      <Footer onNavigate={onNavigate} />
+      <Footer />
       </div>
     </div>
   );

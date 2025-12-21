@@ -1,4 +1,3 @@
-import React from 'react';
 import { CheckCircle } from 'lucide-react';
 
 interface TicketSelectorProps {
@@ -47,14 +46,7 @@ interface TicketSelectorProps {
   onSelectTicketType: (ticketId: string) => void;
   onSelectTimeSlot: (slotId: string) => void;
   isRSVPed: boolean;
-  onBuyTicket: (ticketId?: string, quantity?: number) => void;
-  promoCode?: string;
-  onPromoCodeChange?: (code: string) => void;
-  promoCodeError?: string;
-  isValidatingPromo?: boolean;
-  onValidatePromo?: () => void;
-  validatedPromoCode?: { discount_type: string; discount_value: number } | null;
-  maxQuantity?: number; // Maximum quantity allowed per purchase
+  onBuyTicket: () => void;
 }
 
 export default function TicketSelector({
@@ -65,104 +57,13 @@ export default function TicketSelector({
   onSelectTicketType,
   onSelectTimeSlot,
   isRSVPed,
-  onBuyTicket,
-  promoCode = '',
-  onPromoCodeChange,
-  promoCodeError = '',
-  isValidatingPromo = false,
-  onValidatePromo,
-  validatedPromoCode = null,
-  maxQuantity
+  onBuyTicket
 }: TicketSelectorProps) {
-  // quantities keyed by ticket/slot id so each item can have its own count
-  const [quantities, setQuantities] = React.useState<Record<string, number>>({});
-  const [showMaxLimitWarning, setShowMaxLimitWarning] = React.useState(false);
-
-  const getQuantity = (id: string) => quantities[id] ?? 1;
-  const setQuantityFor = (id: string, next: number) => {
-    // Apply max quantity limit if specified
-    const limitedQuantity = maxQuantity ? Math.min(next, maxQuantity) : next;
-    
-    // Show warning if user tried to exceed limit
-    if (maxQuantity && next > maxQuantity) {
-      setShowMaxLimitWarning(true);
-      setTimeout(() => setShowMaxLimitWarning(false), 3000); // Hide after 3 seconds
-    }
-    
-    setQuantities(prev => ({ ...prev, [id]: limitedQuantity }));
-  };
-
-  // Calculate total price for a ticket
-  const getTotalPrice = (ticket: { price: number }, quantity: number) => {
-    return ticket.price * quantity;
-  };
-
-  // Get selected ticket details
-  const getSelectedTicket = () => {
-    if (ticketType === 'uniform' && tickets.uniform.length > 0) {
-      return tickets.uniform[0];
-    }
-    if (ticketType === 'class') {
-      return tickets.class.find(t => t.id === selectedTicketType);
-    }
-    if (ticketType === 'loyalty') {
-      return tickets.loyalty.find(t => t.id === selectedTicketType);
-    }
-    if (ticketType === 'season') {
-      return tickets.season.find(t => t.id === selectedTicketType);
-    }
-    if (ticketType === 'timeslot') {
-      return tickets.timeslot.find(t => t.id === selectedTimeSlot);
-    }
-    return null;
-  };
-
-  const selectedTicket = getSelectedTicket();
-  
-  // Get the actual selected ticket for uniform type (handle multiple ticket types)
-  let actualSelectedTicket = selectedTicket;
-  if (ticketType === 'uniform' && tickets.uniform && tickets.uniform.length > 0) {
-    // If multiple ticket types, find the selected one
-    if (selectedTicketType && tickets.uniform.length > 1) {
-      actualSelectedTicket = tickets.uniform.find((t: any) => t.id === selectedTicketType) || tickets.uniform[0];
-    } else {
-      actualSelectedTicket = tickets.uniform[0];
-    }
-  }
-  
-  const totalPrice = actualSelectedTicket ? getTotalPrice(actualSelectedTicket, getQuantity(actualSelectedTicket.id)) : 0;
-  
-  // Check if tickets are selected (for enabling promo code)
-  const hasSelectedTickets = actualSelectedTicket && getQuantity(actualSelectedTicket.id) > 0;
-  
-  // Calculate discount if promo code is validated
-  let discountAmount = 0;
-  let finalPrice = totalPrice;
-  if (validatedPromoCode && hasSelectedTickets && totalPrice > 0) {
-    if (validatedPromoCode.discount_type === 'percentage') {
-      discountAmount = totalPrice * (validatedPromoCode.discount_value / 100);
-    } else {
-      // fixed amount
-      discountAmount = validatedPromoCode.discount_value;
-    }
-    // Ensure discount doesn't exceed total
-    discountAmount = Math.min(discountAmount, totalPrice);
-    finalPrice = totalPrice - discountAmount;
-  }
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg">
       <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
         {ticketType === 'timeslot' ? 'Select Time Slot' : 'Select Ticket'}
       </h3>
-      
-      {/* Max Quantity Warning - Only show when user tries to exceed */}
-      {showMaxLimitWarning && maxQuantity && (
-        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg animate-pulse">
-          <p className="text-sm text-red-800 dark:text-red-300 font-semibold">
-            Maximum {maxQuantity} {maxQuantity === 1 ? 'ticket' : 'tickets'} per person for this event.
-          </p>
-        </div>
-      )}
 
       {/* Class Tickets (VVIP, VIP, Regular) */}
       {ticketType === 'class' && (
@@ -170,10 +71,7 @@ export default function TicketSelector({
           {tickets.class.map((ticket) => (
             <div
               key={ticket.id}
-              onClick={() => {
-                onSelectTicketType(ticket.id);
-                setQuantityFor(ticket.id, 1);
-              }}
+              onClick={() => onSelectTicketType(ticket.id)}
               className={`border-2 rounded-xl p-4 cursor-pointer transition-all ${
                 selectedTicketType === ticket.id
                   ? 'border-[#27aae2] bg-[#27aae2]/5'
@@ -183,15 +81,10 @@ export default function TicketSelector({
               <div className="flex justify-between items-start mb-2">
                 <div>
                   <h4 className="font-bold text-gray-900 dark:text-white">{ticket.name}</h4>
-                  <p className={`text-xs ${ticket.available === 0 ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-500 dark:text-gray-400'}`}>
-                    {ticket.available !== null && ticket.available !== undefined 
-                      ? (ticket.available === 0 ? 'Sold Out' : `${ticket.available} tickets left`)
-                      : 'Unlimited tickets'}
-                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{ticket.available} tickets left</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-[#27aae2]">KES {getTotalPrice(ticket, getQuantity(ticket.id)).toLocaleString()}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">KES {ticket.price.toLocaleString()} each × {getQuantity(ticket.id)}</p>
+                  <p className="text-2xl font-bold text-[#27aae2]">KES {ticket.price.toLocaleString()}</p>
                 </div>
               </div>
               <ul className="space-y-1">
@@ -202,25 +95,6 @@ export default function TicketSelector({
                   </li>
                 ))}
               </ul>
-              <div className="mt-3 flex items-center gap-2">
-                <button
-                  onClick={(e) => { e.stopPropagation(); const cur = getQuantity(ticket.id); setQuantityFor(ticket.id, Math.max(1, cur - 1)); }}
-                  className="w-8 h-8 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-center justify-center text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none"
-                  disabled={getQuantity(ticket.id) <= 1}
-                  aria-label="Decrease quantity"
-                >
-                  −
-                </button>
-                <div className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-md text-sm bg-gray-50 dark:bg-gray-700 dark:text-white">{getQuantity(ticket.id)}</div>
-                <button
-                  onClick={(e) => { e.stopPropagation(); const cur = getQuantity(ticket.id); setQuantityFor(ticket.id, Math.min(ticket.available || 1, cur + 1)); }}
-                  className="w-8 h-8 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-center justify-center text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none"
-                  disabled={getQuantity(ticket.id) >= ticket.available}
-                  aria-label="Increase quantity"
-                >
-                  +
-                </button>
-              </div>
             </div>
           ))}
         </div>
@@ -232,10 +106,7 @@ export default function TicketSelector({
           {tickets.loyalty.map((ticket) => (
             <div
               key={ticket.id}
-              onClick={() => {
-                onSelectTicketType(ticket.id);
-                setQuantityFor(ticket.id, 1);
-              }}
+              onClick={() => onSelectTicketType(ticket.id)}
               className={`border-2 rounded-xl p-4 cursor-pointer transition-all relative ${
                 selectedTicketType === ticket.id
                   ? 'border-[#27aae2] bg-[#27aae2]/5'
@@ -251,35 +122,13 @@ export default function TicketSelector({
                 <div>
                   <h4 className="font-bold text-gray-900 dark:text-white">{ticket.name}</h4>
                   <p className="text-xs text-gray-500 dark:text-gray-400">{ticket.deadline}</p>
-                  <p className={`text-xs ${ticket.available === 0 ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-500 dark:text-gray-400'}`}>
-                    {ticket.available === 0 ? 'Sold Out' : `${ticket.available} left`}
-                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{ticket.available} left</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-[#27aae2]">KES {getTotalPrice(ticket, getQuantity(ticket.id)).toLocaleString()}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">KES {ticket.price.toLocaleString()} each × {getQuantity(ticket.id)}</p>
+                  <p className="text-2xl font-bold text-[#27aae2]">KES {ticket.price.toLocaleString()}</p>
                 </div>
               </div>
-              <div className="mt-3 flex items-center gap-2">
-                <button
-                  onClick={(e) => { e.stopPropagation(); const cur = getQuantity(ticket.id); setQuantityFor(ticket.id, Math.max(1, cur - 1)); }}
-                  className="w-8 h-8 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-center justify-center text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none"
-                  disabled={getQuantity(ticket.id) <= 1}
-                  aria-label="Decrease quantity"
-                >
-                  −
-                </button>
-                <div className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-md text-sm bg-gray-50 dark:bg-gray-700 dark:text-white">{getQuantity(ticket.id)}</div>
-                <button
-                  onClick={(e) => { e.stopPropagation(); const cur = getQuantity(ticket.id); setQuantityFor(ticket.id, Math.min(ticket.available || 1, cur + 1)); }}
-                  className="w-8 h-8 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-center justify-center text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none"
-                  disabled={getQuantity(ticket.id) >= ticket.available}
-                  aria-label="Increase quantity"
-                >
-                  +
-                </button>
-              </div>
-              </div>
+            </div>
           ))}
         </div>
       )}
@@ -290,10 +139,7 @@ export default function TicketSelector({
           {tickets.season.map((ticket) => (
             <div
               key={ticket.id}
-              onClick={() => {
-                onSelectTicketType(ticket.id);
-                setQuantityFor(ticket.id, 1);
-              }}
+              onClick={() => onSelectTicketType(ticket.id)}
               className={`border-2 rounded-xl p-4 cursor-pointer transition-all relative ${
                 selectedTicketType === ticket.id
                   ? 'border-[#27aae2] bg-[#27aae2]/5'
@@ -312,35 +158,13 @@ export default function TicketSelector({
                   {ticket.discount && (
                     <p className="text-xs text-green-600 dark:text-green-400 font-semibold mt-1">{ticket.discount}</p>
                   )}
-                  <p className={`text-xs mt-1 ${ticket.available === 0 ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-500 dark:text-gray-400'}`}>
-                    {ticket.available === 0 ? 'Sold Out' : `${ticket.available} available`}
-                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{ticket.available} available</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-[#27aae2]">KES {getTotalPrice(ticket, getQuantity(ticket.id)).toLocaleString()}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">KES {ticket.price.toLocaleString()} each × {getQuantity(ticket.id)}</p>
+                  <p className="text-2xl font-bold text-[#27aae2]">KES {ticket.price.toLocaleString()}</p>
                 </div>
               </div>
-              <div className="mt-3 flex items-center gap-2">
-                <button
-                  onClick={(e) => { e.stopPropagation(); const cur = getQuantity(ticket.id); setQuantityFor(ticket.id, Math.max(1, cur - 1)); }}
-                  className="w-8 h-8 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-center justify-center text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none"
-                  disabled={getQuantity(ticket.id) <= 1}
-                  aria-label="Decrease quantity"
-                >
-                  −
-                </button>
-                <div className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-md text-sm bg-gray-50 dark:bg-gray-700 dark:text-white">{getQuantity(ticket.id)}</div>
-                <button
-                  onClick={(e) => { e.stopPropagation(); const cur = getQuantity(ticket.id); setQuantityFor(ticket.id, Math.min(ticket.available || 1, cur + 1)); }}
-                  className="w-8 h-8 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-center justify-center text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none"
-                  disabled={getQuantity(ticket.id) >= ticket.available}
-                  aria-label="Increase quantity"
-                >
-                  +
-                </button>
-              </div>
-              </div>
+            </div>
           ))}
         </div>
       )}
@@ -352,7 +176,7 @@ export default function TicketSelector({
             {tickets.timeslot.map((slot) => (
               <div
                 key={slot.id}
-                onClick={() => slot.available > 0 && (onSelectTimeSlot(slot.id), setQuantityFor(slot.id, 1))}
+                onClick={() => slot.available > 0 && onSelectTimeSlot(slot.id)}
                 className={`border-2 rounded-lg p-3 cursor-pointer transition-all text-center ${
                   selectedTimeSlot === slot.id
                     ? 'border-[#27aae2] bg-[#27aae2]/5'
@@ -362,227 +186,33 @@ export default function TicketSelector({
                 }`}
               >
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">{slot.name}</p>
-                <p className={`text-xs mt-1 ${slot.available === 0 ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-500 dark:text-gray-400'}`}>
-                  {slot.available === 0 ? 'Sold Out' : (slot.available > 0 ? `${slot.available} slots left` : 'Fully booked')}
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {slot.available > 0 ? `${slot.available} slots left` : 'Fully booked'}
                 </p>
-                <p className="text-sm font-bold text-[#27aae2] mt-1">KES {getTotalPrice(slot, getQuantity(slot.id)).toLocaleString()}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">KES {slot.price} each × {getQuantity(slot.id)}</p>
-                <div className="mt-3 flex items-center justify-center gap-2">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); const cur = getQuantity(slot.id); setQuantityFor(slot.id, Math.max(1, cur - 1)); }}
-                    className="w-8 h-8 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-center justify-center text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none"
-                    disabled={getQuantity(slot.id) <= 1}
-                  >
-                    −
-                  </button>
-                  <div className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-md text-sm bg-gray-50 dark:bg-gray-700 dark:text-white">{getQuantity(slot.id)}</div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); const cur = getQuantity(slot.id); setQuantityFor(slot.id, Math.min(slot.available || 1, cur + 1)); }}
-                    className="w-8 h-8 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-center justify-center text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none"
-                    disabled={getQuantity(slot.id) >= slot.available}
-                  >
-                    +
-                  </button>
-                </div>
+                <p className="text-sm font-bold text-[#27aae2] mt-1">KES {slot.price}</p>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Uniform Ticket (Single or Multiple Tickets) */}
+      {/* Uniform Ticket (Single Price) */}
       {ticketType === 'uniform' && tickets.uniform && tickets.uniform.length > 0 && (
-        <div className="space-y-3 mb-6">
-          {tickets.uniform.map((ticket) => (
-            <div
-              key={ticket.id}
-              onClick={() => {
-                onSelectTicketType(ticket.id);
-                setQuantityFor(ticket.id, 1);
-              }}
-              className={`border-2 rounded-xl p-4 cursor-pointer transition-all ${
-                selectedTicketType === ticket.id || (tickets.uniform.length === 1)
-                  ? 'border-[#27aae2] bg-[#27aae2]/5'
-                  : 'border-gray-200 dark:border-gray-700 hover:border-[#27aae2]/50'
-              }`}
-            >
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h4 className="font-bold text-gray-900 dark:text-white">{ticket.name}</h4>
-                  {ticket.price > 0 && ticket.available !== undefined && ticket.available !== null && (
-                    <p className={`text-xs ${ticket.available === 0 ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-500 dark:text-gray-400'}`}>
-                      {ticket.available === 0 ? 'Sold Out' : `${ticket.available} tickets left`}
-                    </p>
-                  )}
-                </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-[#27aae2]">
-                    {getTotalPrice(ticket, getQuantity(ticket.id)) === 0 
-                      ? 'Free' 
-                      : `KES ${getTotalPrice(ticket, getQuantity(ticket.id)).toLocaleString()}`}
-                  </p>
-                  {ticket.price > 0 && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      KES {ticket.price.toLocaleString()} each × {getQuantity(ticket.id)}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="mt-3 flex items-center gap-2">
-                <button
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    const cur = getQuantity(ticket.id); 
-                    setQuantityFor(ticket.id, Math.max(1, cur - 1)); 
-                  }}
-                  className="w-8 h-8 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-center justify-center text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none"
-                  disabled={getQuantity(ticket.id) <= 1}
-                  aria-label="Decrease quantity"
-                >
-                  −
-                </button>
-                <div className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-md text-sm bg-gray-50 dark:bg-gray-700 dark:text-white">
-                  {getQuantity(ticket.id)}
-                </div>
-                <button
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    const cur = getQuantity(ticket.id); 
-                    const maxAvailable = ticket.available !== undefined && ticket.available !== null ? ticket.available : 999;
-                    setQuantityFor(ticket.id, Math.min(maxAvailable, cur + 1)); 
-                  }}
-                  className="w-8 h-8 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-center justify-center text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none"
-                  disabled={ticket.available !== undefined && ticket.available !== null && getQuantity(ticket.id) >= ticket.available}
-                  aria-label="Increase quantity"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Promo Code Section - Only show for paid events */}
-      {onPromoCodeChange && (() => {
-        // Check if any ticket has a price > 0
-        const hasPaidTickets = 
-          tickets.uniform.some(t => t.price > 0) ||
-          tickets.class.some(t => t.price > 0) ||
-          tickets.loyalty.some(t => t.price > 0) ||
-          tickets.season.some(t => t.price > 0) ||
-          tickets.timeslot.some(t => t.price > 0);
-        
-        return hasPaidTickets;
-      })() && (
-        <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mb-4">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Promo Code (Optional)
-          </label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={promoCode}
-              onChange={(e) => {
-                onPromoCodeChange(e.target.value);
-              }}
-              placeholder="Enter promo code"
-              disabled={!hasSelectedTickets}
-              className={`flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#27aae2] focus:border-transparent uppercase ${
-                !hasSelectedTickets ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800' : ''
-              }`}
-            />
-            {onValidatePromo && (
-              <button
-                onClick={onValidatePromo}
-                disabled={!promoCode.trim() || isValidatingPromo || !hasSelectedTickets}
-                className="px-4 py-2 bg-[#27aae2] text-white rounded-lg font-medium hover:bg-[#1e8bb8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-              >
-                {isValidatingPromo ? 'Validating...' : 'Apply'}
-              </button>
-            )}
+        <div className="mb-6">
+          <div className="flex items-baseline justify-between mb-2">
+            <span className="text-3xl font-bold text-gray-900 dark:text-white">
+              {tickets.uniform[0].price === 0 ? 'Free' : `KES ${tickets.uniform[0].price.toLocaleString()}`}
+            </span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">per ticket</span>
           </div>
-          {promoCodeError && (
-            <p className="text-sm text-red-600 dark:text-red-400 mt-1">{promoCodeError}</p>
-          )}
-          {validatedPromoCode && !promoCodeError && (
-            <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-              ✓ Promo code applied! {validatedPromoCode.discount_type === 'percentage' 
-                ? `${validatedPromoCode.discount_value}% off` 
-                : `KES ${validatedPromoCode.discount_value} off`}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Price Summary */}
-      {actualSelectedTicket && (
-        <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mb-4">
-          <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {actualSelectedTicket.name} × {getQuantity(actualSelectedTicket.id)}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                KES {actualSelectedTicket.price.toLocaleString()} each
-              </p>
-            </div>
-            <div className="text-right">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  KES {totalPrice.toLocaleString()}
-                </p>
-              </div>
-            </div>
-            {validatedPromoCode && discountAmount > 0 && (
-              <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-700">
-                <p className="text-sm text-green-600 dark:text-green-400">
-                  Discount ({validatedPromoCode.discount_type === 'percentage' 
-                    ? `${validatedPromoCode.discount_value}%` 
-                    : `KES ${validatedPromoCode.discount_value}`})
-                </p>
-                <p className="text-sm font-semibold text-green-600 dark:text-green-400">
-                  -KES {discountAmount.toLocaleString()}
-                </p>
-              </div>
-            )}
-            <div className="flex justify-between items-center pt-2 border-t-2 border-gray-300 dark:border-gray-600">
-              <p className="text-base font-semibold text-gray-900 dark:text-white">
-                Total
-              </p>
-              <p className="text-lg font-bold text-gray-900 dark:text-white">
-                KES {finalPrice.toLocaleString()}
-              </p>
-            </div>
-          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            {tickets.uniform[0].available || 'Unlimited'} tickets available
+          </p>
         </div>
       )}
 
       <button
-        onClick={() => {
-          // Get the selected ticket ID and quantity
-          let ticketId: string | undefined;
-          let qty: number = 1;
-          
-          if (ticketType === 'uniform' && tickets.uniform && tickets.uniform.length > 0) {
-            // For uniform type, use selected ticket type or first one
-            if (selectedTicketType && tickets.uniform.length > 1) {
-              ticketId = selectedTicketType;
-              qty = getQuantity(selectedTicketType);
-            } else {
-              ticketId = tickets.uniform[0].id;
-              qty = getQuantity(tickets.uniform[0].id);
-            }
-          } else if (selectedTicketType) {
-            ticketId = selectedTicketType;
-            qty = getQuantity(selectedTicketType);
-          } else if (selectedTimeSlot) {
-            ticketId = selectedTimeSlot;
-            qty = getQuantity(selectedTimeSlot);
-          }
-          
-          onBuyTicket(ticketId, qty);
-        }}
+        onClick={onBuyTicket}
         disabled={ticketType !== 'uniform' && !selectedTicketType && !selectedTimeSlot}
         className={`w-full py-4 rounded-xl font-bold text-lg transition-all transform hover:scale-105 ${
           isRSVPed
@@ -592,10 +222,7 @@ export default function TicketSelector({
             : 'bg-gradient-to-r from-[#27aae2] to-[#1e8bb8] text-white hover:shadow-xl'
         }`}
       >
-        {isRSVPed 
-          ? (finalPrice === 0 ? 'RSVP Confirmed!' : 'Ticket Purchased!') 
-          : (finalPrice === 0 ? 'RSVP' : 'Buy Ticket')
-        }
+        {isRSVPed ? 'Ticket Purchased!' : 'Buy Ticket'}
       </button>
     </div>
   );

@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar, Heart, Download, QrCode, Bell, Users, Check, Moon, Sun } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Calendar, Heart, Download, QrCode, Bell, MessageCircle, Users, Check, Moon, Sun, Phone, X, Clock, AlertCircle } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { useAuth } from '../contexts/AuthContext';
 import MyTickets from '../components/userDashboard/MyTickets';
 import Notifications from '../components/userDashboard/Notifications';
 import Messages from '../components/userDashboard/Messages';
@@ -10,20 +9,17 @@ import MyProfile from '../components/userDashboard/MyProfile';
 import Settings from '../components/userDashboard/Settings';
 import EventsBooked from '../components/userDashboard/EventsBooked';
 import BucketList from '../components/userDashboard/BucketList';
-import PendingBookings from '../components/userDashboard/PendingBookings';
-import EventHistory from '../components/userDashboard/EventHistory';
-import { getUserProfile, getUserBookings, getBucketlist, getUserNotifications } from '../services/userService';
-import { API_BASE_URL, getImageUrl } from '../config/api';
+import { getUserProfile, getUserBookings } from '../services/userService';
+import { API_BASE_URL } from '../config/api';
 
 interface UserDashboardProps {
   onNavigate: (page: string) => void;
 }
 
 export default function UserDashboard({ onNavigate }: UserDashboardProps) {
-  const { user, isAuthenticated, logout: logoutUser } = useAuth();
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [activeEventsTab, setActiveEventsTab] = useState<'going' | 'saved'>('going');
-  const [activeView, setActiveView] = useState<'dashboard' | 'tickets' | 'notifications' | 'messages' | 'eventDetail' | 'profile' | 'settings' | 'eventsBooked' | 'bucketList' | 'eventHistory'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'tickets' | 'notifications' | 'messages' | 'eventDetail' | 'profile' | 'settings' | 'eventsBooked' | 'bucketList'>('dashboard');
   const [selectedEvent, setSelectedEvent] = useState<{
     id: string;
     title: string;
@@ -39,139 +35,19 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
   const { isDarkMode, toggleTheme } = useTheme();
   const accountMenuRef = React.useRef<HTMLDivElement>(null);
   const accountButtonRef = React.useRef<HTMLButtonElement>(null);
-  
-  // User profile data from API
-  const [userProfile, setUserProfile] = useState({
-    name: 'User',
-    avatar: '',
-    joinDate: '',
-    eventsAttended: 0
-  });
-  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
-  const [bucketlistEvents, setBucketlistEvents] = useState<any[]>([]);
-  const [eventHistory, setEventHistory] = useState<any[]>([]);
-  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
-  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [userData, setUserData] = useState<any>(null);
+  const [showPhoneCard, setShowPhoneCard] = useState(false);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [pendingBookings, setPendingBookings] = useState<any[]>([]);
+  const [isLoadingPending, setIsLoadingPending] = useState(false);
 
-  // Fetch user data and events
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchUserData();
-    }
-  }, [isAuthenticated]);
-
-  const fetchUserData = async () => {
-    try {
-      setIsLoadingData(true);
-      
-      // Fetch user profile
-      const profileData = await getUserProfile();
-      const userData = profileData.user || profileData;
-      const fullName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 'User';
-      // Use getImageUrl helper to properly handle profile picture URLs (handles /uploads/ paths and full URLs)
-      const avatar = userData.profile_picture 
-        ? getImageUrl(userData.profile_picture)
-        : '';
-      const joinDate = userData.created_at 
-        ? new Date(userData.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-        : '';
-
-      setUserProfile({
-        name: fullName,
-        avatar: avatar,
-        joinDate: joinDate,
-        eventsAttended: 0
-      });
-
-      // Fetch upcoming bookings
-      const upcomingBookings = await getUserBookings('upcoming');
-      const upcoming = (upcomingBookings.bookings || []).map((booking: any) => {
-        const event = booking.event || {};
-        const startDate = event.start_date ? new Date(event.start_date) : new Date();
-        return {
-          id: booking.id?.toString() || event.id?.toString() || '',
-          bookingId: booking.id, // Keep booking ID for ticket operations
-          title: event.title || 'Event',
-          image: event.poster_image 
-            ? `${API_BASE_URL}${event.poster_image.startsWith('/') ? '' : '/'}${event.poster_image}`
-            : 'https://images.pexels.com/photos/2747449/pexels-photo-2747449.jpeg?auto=compress&cs=tinysrgb&w=400',
-          date: startDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
-          time: startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-          location: event.venue_name || event.venue_address || 'Location TBA',
-          ticketId: booking.booking_number || `TKT-${booking.id}`,
-          eventId: event.id,
-          attendees: event.attendee_count || 0
-        };
-      });
-      setUpcomingEvents(upcoming);
-
-      // Fetch bucketlist
-      const bucketlistData = await getBucketlist();
-      const bucketlist = (bucketlistData.events || []).map((event: any) => {
-        const startDate = event.start_date ? new Date(event.start_date) : new Date();
-        const now = new Date();
-        return {
-          id: event.id?.toString() || '',
-          title: event.title || 'Event',
-          image: event.poster_image 
-            ? (event.poster_image.startsWith('http') 
-                ? event.poster_image 
-                : `${API_BASE_URL}${event.poster_image.startsWith('/') ? '' : '/'}${event.poster_image}`)
-            : 'https://images.pexels.com/photos/1105666/pexels-photo-1105666.jpeg?auto=compress&cs=tinysrgb&w=400',
-          date: startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-          location: event.venue_name || event.venue_address || 'Location TBA',
-          price: event.is_free ? 'Free' : `KES ${event.ticket_types?.[0]?.price ? parseFloat(event.ticket_types[0].price).toLocaleString() : 0}`,
-          isOutdated: startDate < now,
-          eventId: event.id,
-          status: event.status, // Include status so we can show it if needed
-          is_published: event.is_published,
-          attendees: event.attendee_count || 0
-        };
-      });
-      setBucketlistEvents(bucketlist);
-
-      // Fetch past bookings (event history)
-      const pastBookings = await getUserBookings('past');
-      const history = (pastBookings.bookings || []).map((booking: any) => {
-        const event = booking.event || {};
-        const startDate = event.start_date ? new Date(event.start_date) : new Date();
-        return {
-          id: booking.id?.toString() || event.id?.toString() || '',
-          title: event.title || 'Event',
-          image: event.poster_image 
-            ? `${API_BASE_URL}${event.poster_image.startsWith('/') ? '' : '/'}${event.poster_image}`
-            : 'https://images.pexels.com/photos/1481308/pexels-photo-1481308.jpeg?auto=compress&cs=tinysrgb&w=400',
-          date: startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-          location: event.venue_name || event.venue_address || 'Location TBA',
-          rating: 5, // TODO: Get actual rating from reviews
-          eventId: event.id,
-          attendees: event.attendee_count || 0
-        };
-      });
-      setEventHistory(history);
-
-      // Update events attended count
-      setUserProfile(prev => ({
-        ...prev,
-        eventsAttended: history.length
-      }));
-
-      // Fetch unread notification count
-      try {
-        const notificationsData = await getUserNotifications(true); // unread only
-        setUnreadNotificationCount(notificationsData.unread_count || 0);
-      } catch (err) {
-        console.error('Error fetching notification count:', err);
-      }
-
-    } catch (err: any) {
-      console.error('Error fetching user data:', err);
-    } finally {
-      setIsLoadingData(false);
-    }
+  // Check if phone card was dismissed in localStorage (but we'll still show it if phone is missing)
+  const checkPhoneCardDismissed = () => {
+    const dismissed = localStorage.getItem('phone_card_dismissed');
+    return dismissed === 'true';
   };
 
-  const handleEventClick = (event: any) => {
+  const handleEventClick = (event: typeof upcomingEvents[0] | typeof bucketlistEvents[0] | typeof eventHistory[0]) => {
     setSelectedEvent(event);
     setActiveView('eventDetail');
   };
@@ -181,9 +57,263 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
     setActiveView('dashboard');
   };
 
-  const handleBackToDashboard = () => {
-    setActiveView('dashboard');
+  const userProfile = {
+    name: 'Alex Johnson',
+    avatar: 'https://i.pravatar.cc/150?img=33',
+    joinDate: 'January 2024',
+    eventsAttended: 12,
+    groupsJoined: 5
   };
+
+  const upcomingEvents = [
+    {
+      id: '1',
+      title: 'Nairobi Tech Summit 2025',
+      image: 'https://images.pexels.com/photos/2747449/pexels-photo-2747449.jpeg?auto=compress&cs=tinysrgb&w=400',
+      date: 'Sat, Nov 2',
+      time: '9:00 AM',
+      location: 'KICC, Nairobi',
+      ticketId: 'TKT-2025-001'
+    },
+    {
+      id: '2',
+      title: 'Morning Yoga in the Park',
+      image: 'https://images.pexels.com/photos/3822647/pexels-photo-3822647.jpeg?auto=compress&cs=tinysrgb&w=400',
+      date: 'Tomorrow',
+      time: '6:00 AM',
+      location: 'Karura Forest',
+      ticketId: 'TKT-2025-002'
+    },
+    {
+      id: '3',
+      title: 'Startup Networking Mixer',
+      image: 'https://images.pexels.com/photos/1190298/pexels-photo-1190298.jpeg?auto=compress&cs=tinysrgb&w=400',
+      date: 'Nov 10',
+      time: '6:00 PM',
+      location: 'iHub Nairobi',
+      ticketId: 'TKT-2025-003'
+    }
+  ];
+
+  const bucketlistEvents = [
+    {
+      id: '4',
+      title: 'Sunset Music Festival',
+      image: 'https://images.pexels.com/photos/1105666/pexels-photo-1105666.jpeg?auto=compress&cs=tinysrgb&w=400',
+      date: 'Nov 15, 2025',
+      location: 'Uhuru Gardens',
+      price: 'KES 800',
+      isOutdated: false
+    },
+    {
+      id: '5',
+      title: 'Mt. Kenya Hiking Adventure',
+      image: 'https://images.pexels.com/photos/618848/pexels-photo-618848.jpeg?auto=compress&cs=tinysrgb&w=400',
+      date: 'Oct 20, 2025',
+      location: 'Mt. Kenya',
+      price: 'Free',
+      isOutdated: true
+    },
+    {
+      id: '6',
+      title: 'Art Gallery Opening',
+      image: 'https://images.pexels.com/photos/1839919/pexels-photo-1839919.jpeg?auto=compress&cs=tinysrgb&w=400',
+      date: 'Nov 20, 2025',
+      location: 'Nairobi Gallery',
+      price: 'KES 500',
+      isOutdated: false
+    }
+  ];
+
+  const eventHistory = [
+    {
+      id: '7',
+      title: 'Jazz Night Live',
+      image: 'https://images.pexels.com/photos/1481308/pexels-photo-1481308.jpeg?auto=compress&cs=tinysrgb&w=400',
+      date: 'Oct 25, 2025',
+      location: 'Alliance Française',
+      rating: 5
+    },
+    {
+      id: '8',
+      title: 'Food & Wine Tasting',
+      image: 'https://images.pexels.com/photos/1267320/pexels-photo-1267320.jpeg?auto=compress&cs=tinysrgb&w=400',
+      date: 'Oct 15, 2025',
+      location: 'Villa Rosa Kempinski',
+      rating: 4
+    },
+    {
+      id: '9',
+      title: 'Photography Workshop',
+      image: 'https://images.pexels.com/photos/2833392/pexels-photo-2833392.jpeg?auto=compress&cs=tinysrgb&w=400',
+      date: 'Oct 5, 2025',
+      location: 'Nairobi National Park',
+      rating: 5
+    }
+  ];
+
+  // Fetch user profile data
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        setIsLoadingUser(true);
+        const data = await getUserProfile();
+        const user = data.user || data;
+        setUserData(user);
+        // Show phone card if phone number is missing (always show, ignore dismissal for now)
+        const phoneNumber = user?.phone_number;
+        const hasPhoneNumber = phoneNumber && typeof phoneNumber === 'string' && phoneNumber.trim() !== '';
+        
+        console.log('User phone number check:', { phoneNumber, hasPhoneNumber, user });
+        
+        if (!hasPhoneNumber) {
+          setShowPhoneCard(true);
+        } else {
+          setShowPhoneCard(false);
+          // Clear dismissal flag if phone number exists
+          localStorage.removeItem('phone_card_dismissed');
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      } finally {
+        setIsLoadingUser(false);
+      }
+    };
+    
+    fetchUserData();
+  }, []);
+
+  // Fetch pending bookings
+  const fetchPendingBookings = useCallback(async () => {
+    try {
+      setIsLoadingPending(true);
+      const response = await getUserBookings('pending');
+      const bookings = (response.bookings || []).filter((booking: any) => 
+        booking.status === 'pending' && 
+        (booking.payment_status === 'unpaid' || booking.payment_status === 'failed') &&
+        booking.reserved_until &&
+        new Date(booking.reserved_until) > new Date()
+      );
+      setPendingBookings(bookings);
+    } catch (error) {
+      console.error('Error fetching pending bookings:', error);
+      setPendingBookings([]);
+    } finally {
+      setIsLoadingPending(false);
+    }
+  }, []);
+
+  // Countdown timer component for pending bookings
+  const CountdownTimer = ({ reservedUntil, onExpire }: { reservedUntil: string; onExpire?: () => void }) => {
+    const [timeLeft, setTimeLeft] = useState<number | null>(null);
+    
+    useEffect(() => {
+      if (!reservedUntil) {
+        setTimeLeft(null);
+        return;
+      }
+      
+      const calculateTimeLeft = () => {
+        try {
+          const now = new Date().getTime();
+          const reserved = new Date(reservedUntil).getTime();
+          
+          if (isNaN(reserved)) {
+            console.error('Invalid reservedUntil date:', reservedUntil);
+            return null;
+          }
+          
+          const difference = reserved - now;
+          return Math.max(0, Math.floor(difference / 1000));
+        } catch (error) {
+          console.error('Error calculating time left:', error);
+          return null;
+        }
+      };
+      
+      const initialTime = calculateTimeLeft();
+      setTimeLeft(initialTime);
+      
+      if (initialTime !== null && initialTime <= 0) {
+        if (onExpire) {
+          onExpire();
+        }
+        return;
+      }
+      
+      const interval = setInterval(() => {
+        const newTimeLeft = calculateTimeLeft();
+        setTimeLeft(newTimeLeft);
+        
+        if (newTimeLeft === null || newTimeLeft <= 0) {
+          clearInterval(interval);
+          if (onExpire) {
+            onExpire();
+          }
+        }
+      }, 1000);
+      
+      return () => clearInterval(interval);
+    }, [reservedUntil, onExpire]);
+    
+    if (timeLeft === null || timeLeft <= 0) {
+      return (
+        <div className="flex items-center space-x-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-1 rounded-full">
+          <Clock className="w-3 h-3" />
+          <span className="text-xs font-bold">Expired</span>
+        </div>
+      );
+    }
+    
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    
+    return (
+      <div className="flex items-center space-x-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 px-2 py-1 rounded-full">
+        <Clock className="w-3 h-3 animate-pulse" />
+        <span className="text-xs font-bold">{minutes}:{seconds.toString().padStart(2, '0')}</span>
+      </div>
+    );
+  };
+
+  // Fetch pending bookings when dashboard is active
+  useEffect(() => {
+    if (activeView === 'dashboard') {
+      fetchPendingBookings();
+      // Refresh every 10 seconds to update countdown
+      const interval = setInterval(() => {
+        fetchPendingBookings();
+      }, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [activeView, fetchPendingBookings]);
+
+  // Re-check phone number when returning to dashboard from profile
+  useEffect(() => {
+    if (activeView === 'dashboard' && userData) {
+      const fetchUserData = async () => {
+        try {
+          const data = await getUserProfile();
+          const user = data.user || data;
+          setUserData(user);
+          const phoneNumber = user?.phone_number;
+          const hasPhoneNumber = phoneNumber && typeof phoneNumber === 'string' && phoneNumber.trim() !== '';
+          
+          // If user added phone number, clear the dismissed flag and hide card
+          if (hasPhoneNumber) {
+            localStorage.removeItem('phone_card_dismissed');
+            setShowPhoneCard(false);
+          } else {
+            // Always show card if phone number is missing
+            setShowPhoneCard(true);
+          }
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+        }
+      };
+      fetchUserData();
+    }
+  }, [activeView]);
 
   React.useEffect(() => {
     if (!accountMenuOpen) return;
@@ -224,13 +354,7 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
           <div className="flex items-center justify-between">
             {/* Left - Logo */}
             <div className="flex items-center space-x-4">
-              <button
-                className="text-xl font-bold text-gray-900 dark:text-white focus:outline-none hover:text-[#27aae2] transition-colors"
-                onClick={() => onNavigate('landing')}
-                aria-label="Go to Landing Page"
-              >
-                Niko Free
-              </button>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white">Niko Free</h1>
             </div>
 
             {/* Right - Notifications, Messages, Account */}
@@ -241,24 +365,17 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
                 className="relative p-2.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
               >
                 <Bell className="w-5 h-5" />
-                {unreadNotificationCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
-                )}
-                {unreadNotificationCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                    {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
-                  </span>
-                )}
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
 
               {/* Messages */}
-              {/* <button 
+              <button 
                 onClick={() => setActiveView('messages')}
                 className="relative p-2.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
               >
                 <MessageCircle className="w-5 h-5" />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#27aae2] rounded-full"></span>
-              </button> */}
+              </button>
 
               {/* Account Menu */}
               <div className="relative">
@@ -268,12 +385,9 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
                   className="flex items-center space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
                 >
                   <img
-                    src={userProfile.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile.name)}&background=27aae2&color=fff`}
+                    src={userProfile.avatar}
                     alt={userProfile.name}
                     className="w-9 h-9 rounded-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile.name)}&background=27aae2&color=fff`;
-                    }}
                   />
                   <div className="hidden sm:block text-left">
                     <p className="text-sm font-semibold text-gray-900 dark:text-white">{userProfile.name}</p>
@@ -324,11 +438,8 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
                     
                     <div className="border-t border-gray-100 mt-2 pt-2">
                       <button 
-                        onClick={() => {
-                          logoutUser();
-                          onNavigate('landing');
-                        }}
-                        className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        onClick={() => onNavigate('landing')}
+                        className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
                       >
                         Log Out
                       </button>
@@ -350,29 +461,22 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
               {/* Profile Section */}
               <div className="text-center mb-6">
                 <img
-                  src={userProfile.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile.name)}&background=27aae2&color=fff&size=128`}
+                  src={userProfile.avatar}
                   alt={userProfile.name}
                   className="w-24 h-24 rounded-full object-cover mx-auto mb-3 border-4 border-[#27aae2]/20"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile.name)}&background=27aae2&color=fff&size=128`;
-                  }}
                 />
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{userProfile.name}</h2>
-                {userProfile.joinDate && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Joined {userProfile.joinDate}</p>
-                )}
+                <p className="text-sm text-gray-500 dark:text-gray-400">Joined {userProfile.joinDate}</p>
               </div>
 
               {/* User Stats */}
-              <div className="space-y-3 mb-6 max-h-96 overflow-y-auto">
+              <div className="space-y-3 mb-6">
                 <div className="bg-gradient-to-br from-[#27aae2]/10 to-[#27aae2]/20 rounded-xl p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="w-10 h-10 bg-[#27aae2] rounded-lg flex items-center justify-center">
                       <Calendar className="w-5 h-5 text-white" />
                     </div>
-                    <span className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {upcomingEvents.length + bucketlistEvents.filter(e => !e.isOutdated).length}
-                    </span>
+                    <span className="text-2xl font-bold text-gray-900 dark:text-white">{userProfile.eventsAttended}</span>
                   </div>
                   <p className="text-xs font-semibold text-gray-900 dark:text-white mb-3">Your Events</p>
                   
@@ -402,64 +506,69 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
                     </button>
                   </div>
 
-                  {/* Event List - with scrolling support */}
-                  <div className="space-y-2 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent hover:scrollbar-thumb-gray-400 dark:hover:scrollbar-thumb-gray-500">
-                    {isLoadingData ? (
-                      <div className="text-center py-4">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#27aae2] mx-auto"></div>
-                      </div>
-                    ) : activeEventsTab === 'going' ? (
-                      upcomingEvents.length > 0 ? (
-                        upcomingEvents.map((event) => (
-                          <div 
-                            key={event.id} 
-                            onClick={() => handleEventClick(event)}
-                            className="bg-white/70 rounded-lg p-2 hover:bg-white transition-colors cursor-pointer"
-                          >
-                            <div className="flex items-center gap-2">
-                              <img
-                                src={event.image}
-                                alt={event.title}
-                                className="w-10 h-10 rounded object-cover"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{event.title}</p>
-                                <p className="text-xs text-gray-700 dark:text-gray-300">{event.date}</p>
-                              </div>
+                  {/* Event List */}
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {activeEventsTab === 'going' ? (
+                      upcomingEvents.slice(0, 3).map((event) => (
+                        <div 
+                          key={event.id} 
+                          onClick={() => handleEventClick(event)}
+                          className="bg-white/70 rounded-lg p-2 hover:bg-white transition-colors cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2">
+                            <img
+                              src={event.image}
+                              alt={event.title}
+                              className="w-10 h-10 rounded object-cover"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{event.title}</p>
+                              <p className="text-xs text-gray-700 dark:text-gray-300">{event.date}</p>
                             </div>
                           </div>
-                        ))
-                      ) : (
-                        <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-2">No upcoming events</p>
-                      )
+                        </div>
+                      ))
                     ) : (
-                      bucketlistEvents.filter(e => !e.isOutdated).length > 0 ? (
-                        bucketlistEvents.filter(e => !e.isOutdated).map((event) => (
-                          <div 
-                            key={event.id} 
-                            onClick={() => handleEventClick(event)}
-                            className="bg-white/70 rounded-lg p-2 hover:bg-white transition-colors cursor-pointer"
-                          >
-                            <div className="flex items-center gap-2">
-                              <img
-                                src={event.image}
-                                alt={event.title}
-                                className="w-10 h-10 rounded object-cover"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{event.title}</p>
-                                <p className="text-xs text-gray-700 dark:text-gray-300">{event.price}</p>
-                              </div>
+                      bucketlistEvents.filter(e => !e.isOutdated).slice(0, 3).map((event) => (
+                        <div 
+                          key={event.id} 
+                          onClick={() => handleEventClick(event)}
+                          className="bg-white/70 rounded-lg p-2 hover:bg-white transition-colors cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2">
+                            <img
+                              src={event.image}
+                              alt={event.title}
+                              className="w-10 h-10 rounded object-cover"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{event.title}</p>
+                              <p className="text-xs text-gray-700 dark:text-gray-300">{event.price}</p>
                             </div>
                           </div>
-                        ))
-                      ) : (
-                        <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-2">No saved events</p>
-                      )
+                        </div>
+                      ))
                     )}
                   </div>
                 </div>
 
+                <div className="bg-gradient-to-br from-gray-800/10 to-gray-900/10 dark:from-gray-700/20 dark:to-gray-600/20 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="w-10 h-10 bg-gray-900 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                      <Users className="w-5 h-5 text-white" />
+                    </div>
+                    <span className="text-2xl font-bold text-gray-900 dark:text-white">{userProfile.groupsJoined}</span>
+                  </div>
+                  <p className="text-xs font-semibold text-gray-900 dark:text-white mb-3">Groups Joined</p>
+                  
+                  {/* See All Groups Button */}
+                  <button className="w-full py-2 bg-white/50 hover:bg-white dark:bg-gray-700/50 dark:hover:bg-gray-700 text-gray-900 dark:text-white rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1">
+                    <span>See All Groups</span>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
               </div>
 
               {/* Quick Actions */}
@@ -492,14 +601,122 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
           <main className="lg:col-span-9">
           {activeView === 'dashboard' ? (
             <>
-          {/* Pending Bookings Section */}
-          <section className="mb-12">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Pending Bookings</h2>
+          {/* Phone Number Update Card */}
+          {showPhoneCard && (
+            <div className="mb-6 bg-gradient-to-r from-[#27aae2] to-[#1e8bb8] rounded-2xl shadow-lg border border-[#27aae2]/20 p-6 relative overflow-hidden">
+              <button
+                onClick={() => {
+                  setShowPhoneCard(false);
+                  // Store dismissal in localStorage so it doesn't show again until phone is added
+                  localStorage.setItem('phone_card_dismissed', 'true');
+                }}
+                className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                  <Phone className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-white mb-2">Update Your Phone Number</h3>
+                  <p className="text-white/90 text-sm mb-4">
+                    Add your phone number to receive important updates, booking confirmations, and event reminders via SMS.
+                  </p>
+                  <button
+                    onClick={() => setActiveView('profile')}
+                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-white text-[#27aae2] rounded-lg font-semibold hover:bg-gray-50 transition-colors shadow-md hover:shadow-lg"
+                  >
+                    <Phone className="w-4 h-4" />
+                    <span>Update Phone Number</span>
+                  </button>
+                </div>
+              </div>
             </div>
-            <PendingBookings />
-          </section>
-
+          )}
+          
+          {/* Pending Bookings Section - Payment Required */}
+          {pendingBookings.length > 0 && (
+            <section className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-orange-500" />
+                  Payment Required
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {pendingBookings.map((booking: any) => {
+                  const event = booking.event || {};
+                  const startDate = event.start_date ? new Date(event.start_date) : new Date();
+                  const dateStr = startDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                  const timeStr = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                  
+                  return (
+                    <div
+                      key={booking.id}
+                      className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl overflow-hidden shadow-lg border-2 border-orange-200 dark:border-orange-800"
+                    >
+                      <div className="relative h-32">
+                        <img
+                          src={event.poster_image ? `${API_BASE_URL}/uploads/${event.poster_image}` : 'https://images.pexels.com/photos/2747449/pexels-photo-2747449.jpeg?auto=compress&cs=tinysrgb&w=400'}
+                          alt={event.title || 'Event'}
+                          className="w-full h-full object-cover opacity-90"
+                        />
+                        <div className="absolute top-2 right-2">
+                          <CountdownTimer 
+                            reservedUntil={booking.reserved_until} 
+                            onExpire={fetchPendingBookings}
+                          />
+                        </div>
+                        <div className="absolute bottom-2 left-2 right-2">
+                          <div className="bg-orange-500/90 backdrop-blur-sm text-white px-2 py-1 rounded-lg">
+                            <p className="text-xs font-semibold">Complete Payment</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-4">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 line-clamp-1">
+                          {event.title || 'Event'}
+                        </h3>
+                        <div className="space-y-1.5 mb-3">
+                          <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                            <Calendar className="w-4 h-4 text-orange-500" />
+                            <span>{dateStr} at {timeStr}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                            <span className="font-semibold text-orange-600 dark:text-orange-400">
+                              KES {parseFloat(booking.total_amount || 0).toLocaleString()}
+                            </span>
+                            <span className="text-xs text-gray-500">• {booking.quantity} ticket{booking.quantity > 1 ? 's' : ''}</span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            // Navigate to event detail page to complete payment
+                            setSelectedEvent({
+                              id: String(event.id),
+                              title: event.title || 'Event',
+                              image: event.poster_image ? `${API_BASE_URL}/uploads/${event.poster_image}` : '',
+                              date: dateStr,
+                              time: timeStr,
+                              location: event.venue_name || event.venue_address || 'Online',
+                              price: `KES ${parseFloat(booking.total_amount || 0).toLocaleString()}`,
+                              ticketId: booking.booking_number
+                            });
+                            setActiveView('eventDetail');
+                          }}
+                          className="w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-semibold transition-colors text-sm"
+                        >
+                          Complete Payment
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+          
           {/* Events Booked Section */}
           <section className="mb-12">
             <div className="flex items-center justify-between mb-6">
@@ -512,13 +729,7 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
               </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {isLoadingData ? (
-                <div className="col-span-full text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#27aae2] mx-auto"></div>
-                  <p className="text-gray-500 dark:text-gray-400 mt-2">Loading events...</p>
-                </div>
-              ) : upcomingEvents.length > 0 ? (
-                upcomingEvents.map((event) => (
+              {upcomingEvents.map((event) => (
                 <div
                   key={event.id}
                   onClick={() => handleEventClick(event)}
@@ -545,58 +756,13 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
                         <QrCode className="w-3.5 h-3.5 text-[#27aae2]" />
                         <span className="font-mono text-xs">{event.ticketId}</span>
                       </div>
-                      {event.attendees !== undefined && (
-                        <div className="flex items-center space-x-2">
-                          <Users className="w-3.5 h-3.5 text-[#27aae2]" />
-                          <span>{event.attendees} attending</span>
-                        </div>
-                      )}
                     </div>
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEventClick(event);
-                        }}
-                        className="flex-1 py-2 bg-[#27aae2] text-white rounded-lg text-sm font-semibold hover:bg-[#1e8bb8] transition-colors"
-                      >
-                        View Ticket
-                      </button>
-                      <button 
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          try {
-                            const { downloadTicket } = await import('../services/userService');
-                            // Use bookingId if available, otherwise fall back to id
-                            const bookingId = (event as any).bookingId || parseInt(event.id);
-                            const blob = await downloadTicket(bookingId);
-                            const url = window.URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = `ticket-${event.ticketId}.pdf`;
-                            document.body.appendChild(a);
-                            a.click();
-                            window.URL.revokeObjectURL(url);
-                            document.body.removeChild(a);
-                          } catch (err: any) {
-                            console.error('Error downloading ticket:', err);
-                            alert('Failed to download ticket: ' + (err.message || 'Unknown error'));
-                          }
-                        }}
-                        className="px-3 py-2 bg-white dark:bg-gray-700 text-[#27aae2] border-2 border-[#27aae2] rounded-lg text-sm font-semibold hover:bg-[#27aae2]/10 transition-colors"
-                        title="Download Ticket"
-                      >
-                        <Download className="w-4 h-4" />
-                      </button>
-                    </div>
+                    <button className="w-full py-2 bg-[#27aae2] text-white rounded-lg text-sm font-semibold hover:bg-[#1e8bb8] transition-colors">
+                      View Ticket
+                    </button>
                   </div>
                 </div>
-                ))
-              ) : (
-                <div className="col-span-full text-center py-8">
-                  <p className="text-gray-500 dark:text-gray-400">No booked events yet</p>
-                </div>
-              )}
+              ))}
             </div>
           </section>
 
@@ -612,13 +778,7 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
               </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {isLoadingData ? (
-                <div className="col-span-full text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#27aae2] mx-auto"></div>
-                  <p className="text-gray-500 dark:text-gray-400 mt-2">Loading events...</p>
-                </div>
-              ) : bucketlistEvents.length > 0 ? (
-                bucketlistEvents.map((event) => (
+              {bucketlistEvents.map((event) => (
                 <div
                   key={event.id}
                   onClick={() => handleEventClick(event)}
@@ -643,13 +803,7 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
                   </div>
                   <div className="p-4">
                     <h3 className="font-bold text-gray-900 dark:text-white mb-2 line-clamp-1 text-sm">{event.title}</h3>
-                    <p className="text-xs text-gray-600 dark:text-gray-300 mb-2">{event.date}</p>
-                    {event.attendees !== undefined && (
-                      <div className="flex items-center space-x-1 mb-2">
-                        <Users className="w-3 h-3 text-[#27aae2]" />
-                        <span className="text-xs text-gray-600 dark:text-gray-400">{event.attendees} attending</span>
-                      </div>
-                    )}
+                    <p className="text-xs text-gray-600 dark:text-gray-300 mb-3">{event.date}</p>
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-bold text-[#27aae2]">{event.price}</span>
                       <button 
@@ -665,12 +819,7 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
                     </div>
                   </div>
                 </div>
-                ))
-              ) : (
-                <div className="col-span-full text-center py-8">
-                  <p className="text-gray-500 dark:text-gray-400">No saved events yet</p>
-                </div>
-              )}
+              ))}
             </div>
           </section>
 
@@ -678,21 +827,10 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
           <section>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Event History</h2>
-              <button 
-                onClick={() => setActiveView('eventHistory')}
-                className="text-[#27aae2] hover:text-[#1e8bb8] font-semibold text-sm"
-              >
-                View All
-              </button>
+              <button className="text-[#27aae2] hover:text-[#1e8bb8] font-semibold text-sm">View All</button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {isLoadingData ? (
-                <div className="col-span-full text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#27aae2] mx-auto"></div>
-                  <p className="text-gray-500 dark:text-gray-400 mt-2">Loading events...</p>
-                </div>
-              ) : eventHistory.length > 0 ? (
-                eventHistory.map((event) => (
+              {eventHistory.map((event) => (
                 <div
                   key={event.id}
                   onClick={() => handleEventClick(event)}
@@ -711,12 +849,6 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
                   <div className="p-4">
                     <h3 className="font-bold text-gray-900 dark:text-white mb-2 line-clamp-1 text-sm">{event.title}</h3>
                     <p className="text-xs text-gray-600 dark:text-gray-300 mb-2">{event.date}</p>
-                    {event.attendees !== undefined && (
-                      <div className="flex items-center space-x-1 mb-2">
-                        <Users className="w-3 h-3 text-[#27aae2]" />
-                        <span className="text-xs text-gray-600 dark:text-gray-400">{event.attendees} attending</span>
-                      </div>
-                    )}
                     <div className="flex items-center space-x-0.5 mb-3">
                       {[...Array(5)].map((_, i) => (
                         <svg
@@ -734,12 +866,7 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
                     </button>
                   </div>
                 </div>
-                ))
-              ) : (
-                <div className="col-span-full text-center py-8">
-                  <p className="text-gray-500 dark:text-gray-400">No past events yet</p>
-                </div>
-              )}
+              ))}
             </div>
           </section>
           </>
@@ -754,11 +881,9 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
           ) : activeView === 'settings' ? (
             <Settings />
           ) : activeView === 'eventsBooked' ? (
-            <EventsBooked onEventClick={handleEventClick} onBack={handleBackToDashboard} />
+            <EventsBooked onEventClick={handleEventClick} />
           ) : activeView === 'bucketList' ? (
-            <BucketList onEventClick={handleEventClick} onBack={handleBackToDashboard} />
-          ) : activeView === 'eventHistory' ? (
-            <EventHistory onEventClick={handleEventClick} onBack={handleBackToDashboard} />
+            <BucketList onEventClick={handleEventClick} />
           ) : (
             <Messages />
           )}

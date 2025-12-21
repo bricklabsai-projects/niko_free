@@ -1,9 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import EventCard from '../components/EventCard';
-import { getEvents } from '../services/eventService';
 
 interface CalendarPageProps {
   onNavigate: (page: string) => void;
@@ -14,9 +13,6 @@ export default function CalendarPage({ onNavigate, onEventClick }: CalendarPageP
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const eventsRef = useRef<HTMLDivElement>(null);
-  const [events, setEvents] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const daysInMonth = (date: Date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -73,62 +69,79 @@ export default function CalendarPage({ onNavigate, onEventClick }: CalendarPageP
     }, 100);
   };
 
-  // Map API event to EventCard-like object
-  const mapEventToCard = (e: any) => {
-    const start = new Date(e.start_date);
-    const displayDate = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    const timeLabel = start.toLocaleTimeString('en-KE', { hour: 'numeric', minute: '2-digit' });
-    const categoryName = e.category?.name || 'Other';
-    const isFree = e.is_free === true;
-    const ticketTypes = e.ticket_types || [];
-    let priceLabel = 'Paid';
-    if (isFree) {
-      priceLabel = 'Free';
-    } else if (ticketTypes.length > 0) {
-      const minPrice = Math.min(...ticketTypes.map((t: any) => t.price || 0));
-      if (minPrice > 0) {
-        priceLabel = `KES ${Math.round(minPrice).toLocaleString()}`;
-      }
-    }
-    const attendees = (e.attendee_count ?? 20);
-    const locationLabel = e.venue_name || e.location?.name || 'TBA';
-
-    return {
-      id: String(e.id),
-      title: e.title,
-      image: e.poster_image || 'https://images.pexels.com/photos/2747449/pexels-photo-2747449.jpeg?auto=compress&cs=tinysrgb&w=800',
-      date: displayDate,
-      rawDate: e.start_date,
-      time: timeLabel,
-      location: locationLabel,
-      attendees,
-      category: categoryName,
-      price: priceLabel,
-    };
-  };
-
-  // Fetch events for the calendar (future events)
-  useEffect(() => {
-    const fetchCalendarEvents = async () => {
-      try {
-        setLoading(true);
-        const data = await getEvents({ per_page: 200 });
-        const apiEvents = data.events || [];
-        setEvents(apiEvents.map(mapEventToCard));
-      } catch (err: any) {
-        console.error('Failed to fetch calendar events:', err);
-        setError(err.message || 'Failed to load events');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCalendarEvents();
-  }, []);
+  // Sample events data
+  const events = [
+    {
+      id: '1',
+      title: 'Tech Conference',
+      image: 'https://images.pexels.com/photos/2747449/pexels-photo-2747449.jpeg?auto=compress&cs=tinysrgb&w=800',
+      date: 'Nov 15, 2025',
+      time: '9:00 AM',
+      location: 'KICC, Nairobi',
+      attendees: 500,
+      category: 'Technology',
+      price: 'KES 2,000'
+    },
+    {
+      id: '2',
+      title: 'Music Festival',
+      image: 'https://images.pexels.com/photos/1105666/pexels-photo-1105666.jpeg?auto=compress&cs=tinysrgb&w=800',
+      date: 'Nov 15, 2025',
+      time: '6:00 PM',
+      location: 'Uhuru Park, Nairobi',
+      attendees: 1000,
+      category: 'Music',
+      price: 'KES 1,500'
+    },
+    {
+      id: '3',
+      title: 'Fitness Bootcamp',
+      image: 'https://images.pexels.com/photos/841130/pexels-photo-841130.jpeg?auto=compress&cs=tinysrgb&w=800',
+      date: 'Nov 18, 2025',
+      time: '7:00 AM',
+      location: 'Karura Forest, Nairobi',
+      attendees: 50,
+      category: 'Sports & Fitness',
+      price: 'KES 500'
+    },
+    {
+      id: '4',
+      title: 'Art Exhibition',
+      image: 'https://images.pexels.com/photos/1839919/pexels-photo-1839919.jpeg?auto=compress&cs=tinysrgb&w=800',
+      date: 'Nov 20, 2025',
+      time: '10:00 AM',
+      location: 'National Museum, Nairobi',
+      attendees: 200,
+      category: 'Arts & Culture',
+      price: 'KES 300'
+    },
+    {
+      id: '5',
+      title: 'Startup Pitch Night',
+      image: 'https://images.pexels.com/photos/3183150/pexels-photo-3183150.jpeg?auto=compress&cs=tinysrgb&w=800',
+      date: 'Nov 22, 2025',
+      time: '5:00 PM',
+      location: 'iHub, Nairobi',
+      attendees: 150,
+      category: 'Business',
+      price: 'Free'
+    },
+    {
+      id: '6',
+      title: 'Food Festival',
+      image: 'https://images.pexels.com/photos/1267320/pexels-photo-1267320.jpeg?auto=compress&cs=tinysrgb&w=800',
+      date: 'Nov 25, 2025',
+      time: '12:00 PM',
+      location: 'Two Rivers Mall, Nairobi',
+      attendees: 800,
+      category: 'Food & Drink',
+      price: 'KES 1,000'
+    },
+  ];
 
   const getEventsForDate = (date: Date) => {
     return events.filter(event => {
-      const eventDate = event.rawDate ? new Date(event.rawDate) : new Date(event.date);
+      const eventDate = new Date(event.date);
       return eventDate.toDateString() === date.toDateString();
     });
   };
@@ -277,7 +290,7 @@ export default function CalendarPage({ onNavigate, onEventClick }: CalendarPageP
         </div>
       </div>
 
-      <Footer onNavigate={onNavigate} />
+      <Footer />
       </div>
     </div>
   );

@@ -232,6 +232,16 @@ export default function Notifications() {
                         {notification.time}
                       </span>
                       <div className="flex items-center gap-1.5 sm:gap-2">
+                        {notification.actionLabel && notification.actionUrl && (
+                          <a
+                            href={notification.actionUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs sm:text-sm font-semibold text-[#27aae2] hover:text-[#1e8bb8] transition-colors"
+                          >
+                            {notification.actionLabel}
+                          </a>
+                        )}
                         {!notification.read && (
                           <button
                             onClick={() => handleMarkAsRead(notification.id)}

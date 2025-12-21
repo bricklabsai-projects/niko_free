@@ -1,128 +1,22 @@
-import { Zap, TrendingUp, Star, Loader2, CheckCircle } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { getPartnerEvents, promoteEvent } from '../../services/partnerService';
-import { checkPaymentStatus } from '../../services/paymentService';
+import { Zap, TrendingUp, Star } from 'lucide-react';
+import { useState } from 'react';
 
 export default function BoostEvent() {
-  const [selectedEvent, setSelectedEvent] = useState<number | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState('');
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
-  const [durationCount, setDurationCount] = useState<number>(1);
-  const [events, setEvents] = useState<any[]>([]);
-  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState('');
-  const [paymentInitiated, setPaymentInitiated] = useState(false);
-  const [paymentId, setPaymentId] = useState<number | null>(null);
-  const [success, setSuccess] = useState(false);
-  const [startDate, setStartDate] = useState<string>('');
-  const [startTime, setStartTime] = useState<string>('');
 
-  useEffect(() => {
-    fetchEvents();
-  }, []);
-
-  const fetchEvents = async () => {
-    try {
-      setIsLoadingEvents(true);
-      setError('');
-      const response = await getPartnerEvents('approved');
-      console.log('Events response:', response); // Debug log
-      
-      // API returns { events: [...], total: ..., page: ..., pages: ... }
-      const eventsList = response?.events || [];
-      
-      if (Array.isArray(eventsList)) {
-        // Filter to only show published events (required for promotion)
-        const publishedEvents = eventsList.filter((e: any) => e.is_published === true);
-        
-        // Further filter to only show upcoming and ongoing events
-        const now = new Date();
-        const upcomingAndOngoingEvents = publishedEvents.filter((e: any) => {
-          const startDate = new Date(e.start_date);
-          const endDate = e.end_date ? new Date(e.end_date) : startDate;
-          
-          // Include if event is upcoming (starts in future) or ongoing (started but not ended)
-          return endDate >= now;
-        });
-        
-        setEvents(upcomingAndOngoingEvents);
-        
-        if (upcomingAndOngoingEvents.length === 0 && publishedEvents.length > 0) {
-          setError('You have published events, but they have all ended. You can only boost upcoming or ongoing events.');
-        } else if (upcomingAndOngoingEvents.length === 0 && eventsList.length > 0) {
-          setError('You have approved events, but none are published or all have ended. Please publish an upcoming event to promote it.');
-        } else if (upcomingAndOngoingEvents.length === 0) {
-          setError('No upcoming or ongoing events available. Please create, get approved, and publish an event first.');
-        } else {
-          setError(''); // Clear any previous errors
-        }
-      } else {
-        setEvents([]);
-        setError('Invalid response format from server');
-      }
-    } catch (err: any) {
-      console.error('Error fetching events:', err);
-      setError(err.message || 'Failed to load events. Please check your connection and try again.');
-      setEvents([]);
-    } finally {
-      setIsLoadingEvents(false);
-    }
-  };
-
-  // Poll payment status if payment was initiated
-  useEffect(() => {
-    if (!paymentInitiated || !paymentId) return;
-
-    const pollInterval = setInterval(async () => {
-      try {
-        const result = await checkPaymentStatus(paymentId);
-        
-        if (result.payment?.status === 'completed') {
-          clearInterval(pollInterval);
-          setPaymentInitiated(false);
-          setSuccess(true);
-          setTimeout(() => {
-            setSuccess(false);
-            setSelectedEvent(null);
-            setSelectedTier(null);
-            setDurationCount(1);
-            fetchEvents();
-          }, 3000);
-        } else if (result.payment?.status === 'failed') {
-          clearInterval(pollInterval);
-          setPaymentInitiated(false);
-          setError('Payment failed. Please try again.');
-        }
-      } catch (err: any) {
-        console.error('Error checking payment status:', err);
-      }
-    }, 3000); // Poll every 3 seconds
-
-    return () => clearInterval(pollInterval);
-  }, [paymentInitiated, paymentId]);
+  const events = [
+    { id: '1', name: 'Summer Music Festival 2024' },
+    { id: '2', name: 'Tech Conference Kenya' },
+    { id: '3', name: 'Food & Wine Expo' },
+    { id: '4', name: 'Art Exhibition 2024' }
+  ];
 
   const boostTiers = [
     {
       id: 'cant-miss',
       name: "Can't Miss!",
-      price: 0, // Free for testing
-      duration: 'per day',
-      description: 'Featured at the top of the homepage',
-      features: [
-        'Top homepage placement',
-        'Priority in search results',
-        'Highlighted in category listings',
-        'Social media promotion',
-        'Newsletter feature'
-      ],
-      badge: 'Free Test',
-      color: 'from-purple-600 to-pink-600',
-      isFree: true
-    },
-    {
-      id: 'cant-miss-paid',
-      name: "Can't Miss! (Paid)",
+      originalPrice: 1000,
       price: 400,
       duration: 'per day',
       description: 'Featured at the top of the homepage',
@@ -134,112 +28,42 @@ export default function BoostEvent() {
         'Newsletter feature'
       ],
       badge: 'Most Popular',
-      color: 'from-blue-600 to-cyan-600',
-      isFree: false
+      color: 'from-purple-600 to-pink-600'
+    },
+    {
+      id: 'category-featured',
+      name: 'Category Featured',
+      originalPrice: 500,
+      price: 200,
+      duration: 'per day',
+      description: 'Featured within your event category',
+      features: [
+        'Category page prominence',
+        'Enhanced search visibility',
+        'Category newsletter inclusion',
+        'Social media mentions'
+      ],
+      badge: 'Best Value',
+      color: 'from-blue-600 to-cyan-600'
+    },
+    {
+      id: 'homepage-banner',
+      name: 'Homepage Banner',
+      price: 50000,
+      duration: 'per week',
+      description: 'Exclusive homepage banner placement',
+      features: [
+        'Full-width banner on homepage',
+        'Maximum visibility',
+        'Priority support',
+        'Dedicated account manager',
+        'Custom creative design',
+        'Performance analytics'
+      ],
+      badge: 'Premium',
+      color: 'from-orange-600 to-red-600'
     }
   ];
-
-  const handleProceedToPayment = async () => {
-    if (!selectedEvent || !selectedTier) {
-      setError('Please select an event and boost package');
-      return;
-    }
-
-    // Validate event ID
-    if (typeof selectedEvent !== 'number' || selectedEvent <= 0) {
-      setError('Invalid event selected. Please select a valid event.');
-      return;
-    }
-
-    const tier = boostTiers.find(t => t.id === selectedTier);
-    if (!tier) {
-      setError('Invalid boost package selected');
-      return;
-    }
-
-    // For free tier, no phone number needed
-    if (tier.isFree) {
-      if (!phoneNumber.trim()) {
-        // Free promotion doesn't need phone
-      }
-    } else {
-      // For paid tier, phone number is required
-      if (!phoneNumber.trim()) {
-        setError('Please enter your phone number for payment');
-        return;
-      }
-    }
-
-    try {
-      setIsProcessing(true);
-      setError('');
-
-      console.log('Promoting event:', {
-        eventId: selectedEvent,
-        daysCount: durationCount,
-        isFree: tier.isFree,
-        phoneNumber: phoneNumber || undefined
-      });
-
-      const result = await promoteEvent(
-        selectedEvent,
-        durationCount,
-        tier.isFree,
-        phoneNumber || undefined
-      );
-
-      console.log('Promotion result:', result);
-
-      if (tier.isFree) {
-        // Free promotion - success immediately
-        setSuccess(true);
-        setTimeout(() => {
-          setSuccess(false);
-          setSelectedEvent(null);
-          setSelectedTier(null);
-          setDurationCount(1);
-          fetchEvents();
-        }, 3000);
-      } else {
-        // Paid promotion - payment initiated, poll for status
-        if (result.payment_id) {
-          setPaymentId(result.payment_id);
-          setPaymentInitiated(true);
-        } else {
-          setError('Payment initiation failed. Please try again.');
-        }
-      }
-    } catch (err: any) {
-      console.error('Promotion error:', err);
-      // Extract error message from response if available
-      const errorMessage = err.message || err.error || 'Failed to promote event. Please try again.';
-      setError(errorMessage);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const selectedTierData = boostTiers.find(t => t.id === selectedTier);
-  const totalCost = selectedTierData 
-    ? (selectedTierData.price * durationCount) 
-    : 0;
-
-  const calculateEndDate = () => {
-    if (!startDate || !startTime) return '';
-    try {
-      const startDateTime = new Date(`${startDate}T${startTime}`);
-      const endDateTime = new Date(startDateTime);
-      endDateTime.setDate(endDateTime.getDate() + durationCount);
-      
-      const year = endDateTime.getFullYear();
-      const month = String(endDateTime.getMonth() + 1).padStart(2, '0');
-      const day = String(endDateTime.getDate()).padStart(2, '0');
-      
-      return `${year}-${month}-${day}  Time: ${startTime}`;
-    } catch (err) {
-      return 'Invalid date';
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -256,39 +80,22 @@ export default function BoostEvent() {
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
           Select Event to Boost
         </label>
-        {isLoadingEvents ? (
-          <div className="flex items-center justify-center py-4">
-            <Loader2 className="w-5 h-5 animate-spin text-[#27aae2]" />
-            <span className="ml-2 text-gray-600 dark:text-gray-400">Loading events...</span>
-          </div>
-        ) : (
-          <select
-            value={selectedEvent || ''}
-            onChange={(e) => setSelectedEvent(e.target.value ? parseInt(e.target.value) : null)}
-            className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-[#27aae2] focus:border-transparent"
-          >
-            <option value="">Choose an event...</option>
-            {events.map((event) => (
-              <option key={event.id} value={event.id}>
-                {event.title}
-              </option>
-            ))}
-          </select>
-        )}
-        {error && !isLoadingEvents && (
-          <p className="text-sm text-red-500 dark:text-red-400 mt-2">
-            {error}
-          </p>
-        )}
-        {events.length === 0 && !isLoadingEvents && !error && (
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-            No upcoming or ongoing events available. Only future or active events can be boosted.
-          </p>
-        )}
+        <select
+          value={selectedEvent}
+          onChange={(e) => setSelectedEvent(e.target.value)}
+          className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-[#27aae2] focus:border-transparent"
+        >
+          <option value="">Choose an event...</option>
+          {events.map((event) => (
+            <option key={event.id} value={event.id}>
+              {event.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Boost Tiers */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {boostTiers.map((tier) => (
           <div
             key={tier.id}
@@ -313,14 +120,28 @@ export default function BoostEvent() {
             <div className="p-6">
               {/* Price */}
               <div className="mb-6">
+                <div className="flex items-baseline space-x-2">
+                  {tier.originalPrice && (
+                    <span className="text-gray-400 line-through text-lg">
+                      Ksh {tier.originalPrice.toLocaleString()}
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-baseline space-x-2 mt-1">
                   <span className="text-4xl font-bold text-gray-900 dark:text-white">
-                    KES {tier.price.toLocaleString()}
+                    Ksh {tier.price.toLocaleString()}
                   </span>
                   <span className="text-gray-600 dark:text-gray-400">
                     {tier.duration}
                   </span>
                 </div>
+                {tier.originalPrice && (
+                  <div className="mt-2">
+                    <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded-full text-xs font-semibold">
+                      Save {Math.round(((tier.originalPrice - tier.price) / tier.originalPrice) * 100)}%
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Features */}
@@ -337,7 +158,7 @@ export default function BoostEvent() {
 
               {/* Select Button */}
               <button
-                onClick={() => { setSelectedTier(tier.id); setDurationCount(1); }}
+                onClick={() => setSelectedTier(tier.id)}
                 disabled={!selectedEvent}
                 className={`w-full py-3 rounded-xl font-semibold transition-all ${
                   selectedTier === tier.id
@@ -365,45 +186,16 @@ export default function BoostEvent() {
             <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700">
               <span className="text-gray-600 dark:text-gray-400">Selected Event</span>
               <span className="font-semibold text-gray-900 dark:text-white">
-                {events.find(e => e.id === selectedEvent)?.title}
+                {events.find(e => e.id === selectedEvent)?.name}
               </span>
             </div>
 
             <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700">
               <span className="text-gray-600 dark:text-gray-400">Boost Package</span>
               <span className="font-semibold text-gray-900 dark:text-white">
-                {selectedTierData?.name}
+                {boostTiers.find(t => t.id === selectedTier)?.name}
               </span>
             </div>
-
-            <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700">
-              <span className="text-gray-600 dark:text-gray-400">Start Date</span>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-40 px-3 py-2 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg text-center"
-              />
-            </div>
-
-            <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700">
-              <span className="text-gray-600 dark:text-gray-400">Start Time</span>
-              <input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="w-40 px-3 py-2 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg text-center"
-              />
-            </div>
-
-            {startDate && startTime && (
-              <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700">
-                <span className="text-gray-600 dark:text-gray-400">End Date and Time</span>
-                <span className="font-semibold text-gray-900 dark:text-white">
-                  {calculateEndDate()}
-                </span>
-              </div>
-            )}
 
             <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700">
               <span className="text-gray-600 dark:text-gray-400">Duration</span>
@@ -411,100 +203,24 @@ export default function BoostEvent() {
                 <input
                   type="number"
                   min="1"
-                  max="30"
-                  value={durationCount}
-                  onChange={(e) => setDurationCount(Math.max(1, parseInt(e.target.value || '1')))}
+                  defaultValue="1"
                   className="w-20 px-3 py-2 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg text-center"
                 />
                 <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
-                  days
+                  {boostTiers.find(t => t.id === selectedTier)?.duration.split(' ')[1]}
                 </span>
               </div>
-            </div>
-
-            {/* Phone Number Input */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Phone Number {selectedTierData?.isFree ? '(Optional)' : '(Required for payment)'}
-              </label>
-              <input
-                type="tel"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="254712345678"
-                className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-[#27aae2] focus:border-transparent"
-              />
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Enter your M-Pesa phone number
-              </p>
             </div>
 
             <div className="flex justify-between items-center pt-4">
               <span className="text-xl font-bold text-gray-900 dark:text-white">Total</span>
               <span className="text-2xl font-bold text-[#27aae2]">
-                KES {totalCost.toLocaleString()}
+                Ksh {boostTiers.find(t => t.id === selectedTier)?.price.toLocaleString()}
               </span>
             </div>
 
-            {/* Success Message */}
-            {success && (
-              <div className="bg-green-50 dark:bg-green-900/20 border-2 border-green-500 rounded-lg p-4">
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                  <p className="text-sm font-medium text-green-900 dark:text-green-300">
-                    Event promoted successfully!
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Payment Status */}
-            {paymentInitiated && (
-              <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-500 rounded-lg p-4">
-                <div className="flex items-center space-x-3">
-                  <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-blue-900 dark:text-blue-300">
-                      M-Pesa STK Push sent! Please check your phone to complete payment.
-                    </p>
-                    <p className="text-xs text-blue-700 dark:text-blue-400 mt-1">
-                      Enter your M-Pesa PIN when prompted. Waiting for payment confirmation...
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Error Message */}
-            {error && !paymentInitiated && !success && (
-              <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-500 rounded-lg p-3">
-                <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
-              </div>
-            )}
-
-            <button 
-              onClick={handleProceedToPayment}
-              disabled={isProcessing || paymentInitiated || success}
-              className="w-full bg-[#27aae2] text-white py-4 rounded-xl font-bold text-lg hover:bg-[#1e8bc3] transition-all shadow-lg mt-4 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Processing...</span>
-                </>
-              ) : paymentInitiated ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Waiting for Payment...</span>
-                </>
-              ) : success ? (
-                <>
-                  <CheckCircle className="w-5 h-5" />
-                  <span>Success!</span>
-                </>
-              ) : (
-                <span>Proceed to Payment</span>
-              )}
+            <button className="w-full bg-[#27aae2] text-white py-4 rounded-xl font-bold text-lg hover:bg-[#1e8bc3] transition-all shadow-lg mt-4">
+              Proceed to Payment
             </button>
           </div>
         </div>

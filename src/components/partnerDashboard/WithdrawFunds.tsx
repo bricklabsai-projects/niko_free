@@ -1,6 +1,5 @@
-import { X, Wallet, Building2, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { X, Wallet, Building2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useState } from 'react';
-import { requestPayout } from '../../services/partnerService';
 
 interface WithdrawFundsProps {
   isOpen: boolean;
@@ -17,7 +16,6 @@ export default function WithdrawFunds({ isOpen, onClose, availableBalance }: Wit
   const [accountNumber, setAccountNumber] = useState('');
   const [accountName, setAccountName] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
 
   if (!isOpen) return null;
 
@@ -74,41 +72,14 @@ export default function WithdrawFunds({ isOpen, onClose, availableBalance }: Wit
     setStep('confirm');
   };
 
-  const handleConfirm = async () => {
-    setIsLoading(true);
-    setError('');
+  const handleConfirm = () => {
+    // In production, this would call the API to process withdrawal
+    setStep('success');
     
-    try {
-      const withdrawAmount = parseFloat(amount);
-      
-      // Format phone number for MPesa (remove + and spaces, ensure 254 format)
-      let phoneForPayout = '';
-      if (withdrawMethod === 'mpesa') {
-        phoneForPayout = mpesaPhone.replace(/\D/g, ''); // Remove all non-digits
-        if (phoneForPayout.startsWith('0')) {
-          phoneForPayout = '254' + phoneForPayout.substring(1);
-        } else if (!phoneForPayout.startsWith('254')) {
-          phoneForPayout = '254' + phoneForPayout;
-        }
-      }
-      
-      // Call the payout API
-      await requestPayout(
-        withdrawAmount,
-        withdrawMethod === 'mpesa' ? 'mpesa' : 'bank_transfer',
-        withdrawMethod === 'mpesa' ? phoneForPayout : undefined
-      );
-      
-      setStep('success');
-      
-      // Auto-close after 3 seconds
-      setTimeout(() => {
-        handleClose();
-      }, 3000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to process withdrawal. Please try again.');
-      setIsLoading(false);
-    }
+    // Auto-close after 3 seconds
+    setTimeout(() => {
+      handleClose();
+    }, 3000);
   };
 
   const handleClose = () => {
@@ -179,7 +150,7 @@ export default function WithdrawFunds({ isOpen, onClose, availableBalance }: Wit
                   <div className="flex-1 text-left">
                     <h4 className="text-lg font-bold text-gray-900 dark:text-white">M-Pesa</h4>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Instant transfer to your M-Pesa number</p>
-                    <p className="text-xs text-green-600 dark:text-green-400 font-semibold mt-1">⚡ Instant</p>
+                    <p className="text-xs text-green-600 dark:text-green-400 font-semibold mt-1">⚡ Instant • No fees</p>
                   </div>
                 </div>
               </button>
@@ -391,26 +362,11 @@ export default function WithdrawFunds({ isOpen, onClose, availableBalance }: Wit
                 </p>
               </div>
 
-              {error && (
-                <div className="flex items-start space-x-2 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
-                  <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-                </div>
-              )}
-
               <button
                 onClick={handleConfirm}
-                disabled={isLoading}
-                className="w-full bg-[#27aae2] text-white py-3 rounded-xl font-semibold hover:bg-[#1e8bc3] transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                className="w-full bg-[#27aae2] text-white py-3 rounded-xl font-semibold hover:bg-[#1e8bc3] transition-all shadow-lg"
               >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                    Processing...
-                  </>
-                ) : (
-                  'Confirm Withdrawal'
-                )}
+                Confirm Withdrawal
               </button>
             </div>
           )}

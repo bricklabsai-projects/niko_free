@@ -77,24 +77,10 @@ export const getUserBookings = async (status?: 'upcoming' | 'past' | 'cancelled'
     headers: getAuthHeaders(),
   });
 
-  // Handle rate limiting (429) and other errors
-  if (response.status === 429) {
-    throw new Error('Too many requests. Please wait a moment and try again.');
-  }
-
-  // Check if response is JSON before parsing
-  const contentType = response.headers.get('content-type');
-  let data;
-  if (contentType && contentType.includes('application/json')) {
-    data = await response.json();
-  } else {
-    // If not JSON, read as text to see what we got
-    const text = await response.text();
-    throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}`);
-  }
+  const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.error || data.msg || 'Failed to fetch bookings');
+    throw new Error(data.error || 'Failed to fetch bookings');
   }
 
   return data;
@@ -173,11 +159,10 @@ export const removeFromBucketlist = async (eventId: number): Promise<any> => {
 };
 
 /**
- * Get user/admin notifications
- * Uses /api/notifications/user behind the scenes
+ * Get user notifications
  */
 export const getUserNotifications = async (unreadOnly: boolean = false): Promise<any> => {
-  const url = new URL(`${API_BASE_URL}/api/notifications/user`);
+  const url = new URL(`${API_BASE_URL}${API_ENDPOINTS.users.notifications}`);
   if (unreadOnly) {
     url.searchParams.append('unread_only', 'true');
   }
@@ -200,7 +185,7 @@ export const getUserNotifications = async (unreadOnly: boolean = false): Promise
  * Mark notification as read
  */
 export const markNotificationRead = async (notificationId: number): Promise<any> => {
-  const response = await fetch(`${API_BASE_URL}/api/notifications/${notificationId}/read`, {
+  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.users.notifications}/${notificationId}/read`, {
     method: 'PUT',
     headers: getAuthHeaders(),
   });
@@ -218,7 +203,7 @@ export const markNotificationRead = async (notificationId: number): Promise<any>
  * Mark all notifications as read
  */
 export const markAllNotificationsRead = async (): Promise<any> => {
-  const response = await fetch(`${API_BASE_URL}/api/notifications/read-all`, {
+  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.users.notifications}/read-all`, {
     method: 'PUT',
     headers: getAuthHeaders(),
   });
@@ -266,16 +251,6 @@ export const getEventReviews = async (eventId: number): Promise<any> => {
   const data = await response.json();
 
   if (!response.ok) {
-    // For 404 errors, return empty reviews instead of throwing
-    if (response.status === 404) {
-      return {
-        reviews: [],
-        average_rating: 0,
-        total_reviews: 0,
-        page: 1,
-        pages: 0
-      };
-    }
     throw new Error(data.error || 'Failed to fetch reviews');
   }
 
@@ -373,24 +348,6 @@ export const getTicketQRCode = async (bookingId: number): Promise<any> => {
 
   if (!response.ok) {
     throw new Error(data.error || 'Failed to get QR code');
-  }
-
-  return data;
-};
-
-/**
- * Get ticket details (view ticket)
- */
-export const getTicketDetails = async (bookingId: number): Promise<any> => {
-  const response = await fetch(`${API_BASE_URL}/api/tickets/${bookingId}`, {
-    method: 'GET',
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to get ticket details');
   }
 
   return data;

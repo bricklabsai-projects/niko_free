@@ -52,16 +52,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = () => {
-    // Clear all authentication data
     removeToken();
     setUser(null);
     setToken(null);
-    
-    // Clear any other stored data that might be related to the session
-    // This ensures a complete logout
-    localStorage.removeItem('niko_free_token');
-    localStorage.removeItem('niko_free_user');
-    localStorage.removeItem('niko_free_refresh_token');
   };
 
   // Compute isAuthenticated dynamically based on current state

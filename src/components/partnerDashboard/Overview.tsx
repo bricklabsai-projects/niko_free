@@ -1,4 +1,4 @@
-import { TrendingUp, DollarSign, Wallet, ArrowDownRight, Calendar, Users, Eye, Download, ArrowUpRight, ChevronLeft, ChevronRight, X, MapPin, Clock, Tag, Ticket, Sparkles, Globe, Video, Share2 } from 'lucide-react';
+import { TrendingUp, DollarSign, Wallet, ArrowDownRight, Calendar, Users, Eye, Download, ArrowUpRight, ChevronLeft, ChevronRight, X, MapPin, Clock, Tag, Ticket, Sparkles, Globe, Video } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getPartnerEvents, getPartnerToken } from '../../services/partnerService';
 import { API_BASE_URL, API_ENDPOINTS } from '../../config/api';
@@ -6,7 +6,6 @@ import { createPortal } from 'react-dom';
 
 interface OverviewProps {
   onWithdrawClick?: () => void;
-  dashboardData?: any;
 }
 
 interface EventDetails {
@@ -30,154 +29,56 @@ interface EventDetails {
   status: string;
 }
 
-export default function Overview({ onWithdrawClick, dashboardData }: OverviewProps) {
+export default function Overview({ onWithdrawClick }: OverviewProps) {
   const [currentEventsPage, setCurrentEventsPage] = useState(0);
   const [historyEventsPage, setHistoryEventsPage] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [currentEvents, setCurrentEvents] = useState<any[]>([]);
   const [eventHistory, setEventHistory] = useState<any[]>([]);
-  const [pastEventsCount, setPastEventsCount] = useState(0);
   const [selectedEvent, setSelectedEvent] = useState<EventDetails | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [financialData, setFinancialData] = useState({
-    netEarnings: 0,
-    amountWithdrawn: 0,
-    currentBalance: 0,
-    grossRevenue: 0
-  });
   const eventsPerPage = 5;
 
   // Fetch data on mount
   useEffect(() => {
     fetchData();
-    // Only fetch financial data if not provided via props
-    if (!dashboardData) {
-      fetchFinancialData();
-    } else {
-      // Use provided dashboard data
-      const stats = dashboardData.stats || {};
-      const totalEarnings = parseFloat(stats.total_earnings || 0);
-      const withdrawnEarnings = parseFloat(stats.withdrawn_earnings || 0);
-      const pendingEarnings = parseFloat(stats.pending_earnings || 0);
-      const grossRevenue = totalEarnings > 0 ? totalEarnings / 0.93 : 0;
-      
-      setFinancialData({
-        netEarnings: totalEarnings,
-        amountWithdrawn: withdrawnEarnings,
-        currentBalance: pendingEarnings,
-        grossRevenue: grossRevenue
-      });
-    }
-  }, [dashboardData]);
-
-  const fetchFinancialData = async () => {
-    try {
-      const token = getPartnerToken();
-      if (!token) return;
-
-      // Fetch dashboard data which includes financial stats
-      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.partner.dashboard}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const stats = data.stats || {};
-        
-        // Calculate financial metrics
-        const totalEarnings = parseFloat(stats.total_earnings || 0); // Net earnings (after 7% deduction)
-        const withdrawnEarnings = parseFloat(stats.withdrawn_earnings || 0);
-        const pendingEarnings = parseFloat(stats.pending_earnings || 0); // Available to withdraw
-        
-        // Gross revenue = net earnings / 0.93 (since 7% is deducted: net = gross * 0.93)
-        const grossRevenue = totalEarnings > 0 ? totalEarnings / 0.93 : 0;
-
-        setFinancialData({
-          netEarnings: totalEarnings,
-          amountWithdrawn: withdrawnEarnings,
-          currentBalance: pendingEarnings,
-          grossRevenue: grossRevenue
-        });
-      }
-    } catch (err) {
-      console.error('Error fetching financial data:', err);
-    }
-  };
+  }, []);
 
   const fetchData = async () => {
     try {
       setIsLoading(true);
       
-      // Fetch all approved events at once instead of separate calls
-      const allEventsResponse = await getPartnerEvents('approved');
-      const allEvents = allEventsResponse.events || [];
+      // Fetch current events (upcoming + ongoing)
+      const currentResponse = await getPartnerEvents('upcoming');
+      const ongoingResponse = await getPartnerEvents('ongoing');
       
-      // Filter by date client-side
-      const now = new Date();
-      const upcoming = allEvents.filter((event: any) => {
-        const startDate = new Date(event.start_date);
-        return startDate > now && event.status === 'approved';
-      });
-      const ongoing = allEvents.filter((event: any) => {
-        const startDate = new Date(event.start_date);
-        const endDate = event.end_date ? new Date(event.end_date) : startDate;
-        return startDate <= now && endDate >= now && event.status === 'approved';
-      });
+      const upcoming = currentResponse.events || [];
+      const ongoing = ongoingResponse.events || [];
       const allCurrent = [...upcoming, ...ongoing];
       
       // Format current events
-      const formattedCurrent = allCurrent.map((event: any) => {
-        // Calculate total tickets from ticket types
-        let totalTickets = 0;
-        let hasLimitedTickets = false;
-        
-        if (event.ticket_types && Array.isArray(event.ticket_types)) {
-          event.ticket_types.forEach((tt: any) => {
-            if (tt.quantity_total !== null && tt.quantity_total !== undefined) {
-              hasLimitedTickets = true;
-              totalTickets += tt.quantity_total || 0;
-            }
-          });
-        }
-        
-        // If no limited tickets, use attendee_capacity or show as unlimited
-        if (!hasLimitedTickets) {
-          totalTickets = event.attendee_capacity || event.total_tickets_sold || 0;
-        }
-        
-        const ticketsSold = event.total_tickets_sold || 0;
-        const attendeeCount = event.attendee_count || 0;
-        
-        return {
-          id: event.id,
-          title: event.title,
-          image: event.poster_image 
-            ? (event.poster_image.startsWith('http') ? event.poster_image : `${API_BASE_URL}/${event.poster_image.replace(/^\/+/, '')}`)
-            : 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=300&fit=crop',
-          date: new Date(event.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-          attendees: `${attendeeCount}${totalTickets > 0 ? `/${totalTickets}` : ''}`,
-          ticketsSold: ticketsSold,
-          totalTickets: totalTickets || ticketsSold || 1, // Use 1 as fallback to avoid division by zero
-          grossRevenue: `Ksh ${((event.revenue || 0) / 0.93).toLocaleString()}`,
-          netEarnings: `Ksh ${(event.revenue || 0).toLocaleString()}`,
-          views: (event.view_count || 0).toLocaleString(),
-          status: 'active',
-          rawEvent: event
-        };
-      });
+      const formattedCurrent = allCurrent.map((event: any) => ({
+        id: event.id,
+        title: event.title,
+        image: event.poster_image 
+          ? (event.poster_image.startsWith('http') ? event.poster_image : `${API_BASE_URL}/${event.poster_image.replace(/^\/+/, '')}`)
+          : 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=300&fit=crop',
+        date: new Date(event.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        attendees: `${event.attendee_count || 0}/${event.total_tickets_sold || 0}`,
+        ticketsSold: event.total_tickets_sold || 0,
+        totalTickets: event.total_tickets_sold || 0, // Will calculate from ticket types if needed
+        grossRevenue: `Ksh ${((event.revenue || 0) / 0.93).toLocaleString()}`,
+        netEarnings: `Ksh ${(event.revenue || 0).toLocaleString()}`,
+        views: (event.view_count || 0).toLocaleString(),
+        status: 'active',
+        rawEvent: event
+      }));
       
       setCurrentEvents(formattedCurrent);
       
       // Fetch past events
       const pastResponse = await getPartnerEvents('past');
       const pastEvents = pastResponse.events || [];
-      
-      // Use total from API response if available (more accurate than events.length)
-      const pastEventsTotal = pastResponse.total !== undefined ? pastResponse.total : pastEvents.length;
-      setPastEventsCount(pastEventsTotal);
       
       // Format past events
       const formattedPast = pastEvents.map((event: any) => ({
@@ -222,38 +123,34 @@ export default function Overview({ onWithdrawClick, dashboardData }: OverviewPro
     }
   };
 
-  // Format currency helper
-  const formatCurrency = (amount: number) => {
-    return `Ksh ${Math.round(amount).toLocaleString()}`;
-  };
-
-  // Financial Stats - Pulled from API
+  // Financial Stats - Net earnings after 7% deduction (using 0 for now)
   const financialStats = [
     {
       label: 'Net Earnings',
-      value: formatCurrency(financialData.netEarnings),
+      value: 'Ksh 0',
       subtext: 'After 7% deduction',
       icon: TrendingUp,
       color: 'from-green-500 to-emerald-600',
-      // No change percentage for all-time earnings
+      change: '+0%',
+      isPositive: true
     },
     {
       label: 'Amount Withdrawn',
-      value: formatCurrency(financialData.amountWithdrawn),
+      value: 'Ksh 0',
       subtext: 'Total withdrawals',
       icon: ArrowDownRight,
       color: 'from-blue-500 to-cyan-600',
     },
     {
       label: 'Current Balance',
-      value: formatCurrency(financialData.currentBalance),
+      value: 'Ksh 0',
       subtext: 'Available to withdraw',
       icon: Wallet,
       color: 'from-purple-500 to-pink-600',
     },
     {
       label: 'Gross Revenue',
-      value: formatCurrency(financialData.grossRevenue),
+      value: 'Ksh 0',
       subtext: 'Before deductions',
       icon: DollarSign,
       color: 'from-orange-500 to-red-600',
@@ -288,6 +185,13 @@ export default function Overview({ onWithdrawClick, dashboardData }: OverviewPro
                 <div className={`w-12 h-12 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center`}>
                   <Icon className="w-6 h-6 text-white" />
                 </div>
+                {stat.change && (
+                  <span className={`text-sm font-semibold px-2 py-1 rounded-full ${
+                    stat.isPositive ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-gray-100 text-gray-700'
+                  }`}>
+                    {stat.change}
+                  </span>
+                )}
               </div>
               <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">{stat.label}</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{stat.value}</p>
@@ -455,30 +359,15 @@ export default function Overview({ onWithdrawClick, dashboardData }: OverviewPro
                     </div>
                     <span className="font-semibold text-gray-900 dark:text-white">{event.views}</span>
                   </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center text-gray-600 dark:text-gray-400">
-                      <Share2 className="w-3 h-3 mr-1" />
-                      <span>Shares</span>
-                    </div>
-                    <span className="font-semibold text-gray-900 dark:text-white">0</span>
+                  <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                    <div
+                      className="bg-[#27aae2] h-2 rounded-full transition-all"
+                      style={{ width: `${(event.ticketsSold / event.totalTickets) * 100}%` }}
+                    ></div>
                   </div>
-                  {event.totalTickets > 0 ? (
-                    <>
-                      <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
-                        <div
-                          className="bg-[#27aae2] h-2 rounded-full transition-all"
-                          style={{ width: `${Math.min(100, (event.ticketsSold / event.totalTickets) * 100)}%` }}
-                        ></div>
-                      </div>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 text-right">
-                        {event.ticketsSold}/{event.totalTickets} tickets sold
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-xs text-gray-600 dark:text-gray-400 text-right">
-                      {event.ticketsSold} tickets sold (unlimited)
-                    </p>
-                  )}
+                  <p className="text-xs text-gray-600 dark:text-gray-400 text-right">
+                    {event.ticketsSold}/{event.totalTickets} tickets sold
+                  </p>
                 </div>
               </div>
             </div>
@@ -490,14 +379,7 @@ export default function Overview({ onWithdrawClick, dashboardData }: OverviewPro
       {/* Events History Slideshow */}
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-            Events History
-            {pastEventsCount > 0 && (
-              <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
-                ({pastEventsCount} {pastEventsCount === 1 ? 'event' : 'events'})
-              </span>
-            )}
-          </h3>
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white">Events History</h3>
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setHistoryEventsPage(Math.max(0, historyEventsPage - 1))}
@@ -582,13 +464,6 @@ export default function Overview({ onWithdrawClick, dashboardData }: OverviewPro
                       <span>Total Views</span>
                     </div>
                     <span className="font-semibold text-gray-900 dark:text-white">{event.views}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center text-gray-600 dark:text-gray-400">
-                      <Share2 className="w-3 h-3 mr-1" />
-                      <span>Shares</span>
-                    </div>
-                    <span className="font-semibold text-gray-900 dark:text-white">0</span>
                   </div>
                   <button 
                     onClick={() => handleViewDetails(event)}
@@ -785,9 +660,8 @@ export default function Overview({ onWithdrawClick, dashboardData }: OverviewPro
                             <div>
                               <p className="font-semibold text-gray-900 dark:text-white">{ticket.name}</p>
                               <p className="text-sm text-gray-600 dark:text-gray-400">
-                                {ticket.quantity_sold || 0} {ticket.quantity_total !== null && ticket.quantity_total !== undefined 
-                                  ? ` / ${ticket.quantity_total} total` 
-                                  : ' / ∞ (unlimited)'}
+                                {ticket.quantity_sold || 0} sold
+                                {ticket.quantity_total && ` / ${ticket.quantity_total} total`}
                               </p>
                             </div>
                           </div>

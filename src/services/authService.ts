@@ -9,15 +9,7 @@ export const setToken = (token: string) => {
 };
 
 export const getToken = (): string | null => {
-  const token = localStorage.getItem(TOKEN_KEY);
-  // Validate token format (JWT should have 3 parts separated by dots)
-  if (token && token.split('.').length !== 3) {
-    // Token is malformed, remove it
-    console.warn('Malformed token detected, removing from storage');
-    removeToken();
-    return null;
-  }
-  return token;
+  return localStorage.getItem(TOKEN_KEY);
 };
 
 export const removeToken = () => {
@@ -40,7 +32,6 @@ interface RegisterData {
   password: string;
   first_name: string;
   last_name: string;
-  phone_number?: string;
 }
 
 interface LoginData {
@@ -70,28 +61,10 @@ export const register = async (data: RegisterData): Promise<AuthResponse> => {
     body: JSON.stringify(data),
   });
 
-  // Handle 429 (Too Many Requests) with better error message
-  if (response.status === 429) {
-    let errorMessage = 'Too many registration attempts. Please wait a moment before trying again.';
-    try {
-      const errorData = await response.json();
-      errorMessage = errorData.message || errorData.error || errorMessage;
-    } catch (e) {
-      // If response is not JSON, use default message
-    }
-    throw new Error(errorMessage);
-  }
-
-  // Check if response is JSON before parsing
-  const contentType = response.headers.get('content-type');
-  if (!contentType || !contentType.includes('application/json')) {
-    throw new Error('Server returned an invalid response. Please try again.');
-  }
-
   const responseData = await response.json();
 
   if (!response.ok) {
-    throw new Error(responseData.error || responseData.message || 'Registration failed');
+    throw new Error(responseData.error || 'Registration failed');
   }
 
   // Store token and user data
@@ -113,28 +86,10 @@ export const login = async (data: LoginData): Promise<AuthResponse> => {
     body: JSON.stringify(data),
   });
 
-  // Handle 429 (Too Many Requests) with better error message
-  if (response.status === 429) {
-    let errorMessage = 'Too many login attempts. Please wait a moment before trying again.';
-    try {
-      const errorData = await response.json();
-      errorMessage = errorData.message || errorData.error || errorMessage;
-    } catch (e) {
-      // If response is not JSON, use default message
-    }
-    throw new Error(errorMessage);
-  }
-
-  // Check if response is JSON before parsing
-  const contentType = response.headers.get('content-type');
-  if (!contentType || !contentType.includes('application/json')) {
-    throw new Error('Server returned an invalid response. Please try again.');
-  }
-
   const responseData = await response.json();
 
   if (!response.ok) {
-    throw new Error(responseData.error || responseData.message || 'Login failed');
+    throw new Error(responseData.error || 'Login failed');
   }
 
   // Store token and user data
@@ -159,15 +114,9 @@ export const isAuthenticated = (): boolean => {
 // Get authenticated fetch headers
 export const getAuthHeaders = () => {
   const token = getToken();
-  // Only include Authorization header if token is valid
-  if (!token || token.split('.').length !== 3) {
-    return {
-      'Content-Type': 'application/json',
-    };
-  }
   return {
     'Content-Type': 'application/json',
-    Authorization: `Bearer ${token}`,
+    ...(token && { Authorization: `Bearer ${token}` }),
   };
 };
 
@@ -193,25 +142,6 @@ export const forgotPassword = async (email: string): Promise<{ message: string }
 // Reset password with token
 export const resetPassword = async (token: string, newPassword: string): Promise<{ message: string }> => {
   const response = await fetch(API_ENDPOINTS.auth.resetPassword, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ token, password: newPassword }),
-  });
-
-  const responseData = await response.json();
-
-  if (!response.ok) {
-    throw new Error(responseData.error || 'Failed to reset password');
-  }
-
-  return responseData;
-};
-
-// Reset partner password with token
-export const resetPartnerPassword = async (token: string, newPassword: string): Promise<{ message: string }> => {
-  const response = await fetch(API_ENDPOINTS.auth.partnerResetPassword, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -264,101 +194,6 @@ export const partnerLogin = async (data: PartnerLoginData): Promise<PartnerAuthR
   if (responseData.access_token) {
     localStorage.setItem('niko_free_partner_token', responseData.access_token);
     localStorage.setItem('niko_free_partner', JSON.stringify(responseData.partner));
-  }
-
-  return responseData;
-};
-
-// Admin login
-interface AdminLoginData {
-  email: string;
-  password: string;
-  keep_logged_in?: boolean;
-}
-
-interface AdminAuthResponse {
-  access_token: string;
-  refresh_token?: string;
-  user: {
-    id: number;
-    email: string;
-    first_name: string;
-    last_name: string;
-    is_admin: boolean;
-  };
-}
-
-export const adminLogin = async (data: AdminLoginData): Promise<AdminAuthResponse> => {
-  const response = await fetch(API_ENDPOINTS.auth.adminLogin, {
-    method: 'POST',
-    mode: 'cors',
-    credentials: 'omit',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
-    body: JSON.stringify(data),
-  });
-
-  const responseData = await response.json();
-
-  if (!response.ok) {
-    throw new Error(responseData.error || 'Login failed');
-  }
-
-  // Store token and admin user data
-  if (responseData.access_token) {
-    setToken(responseData.access_token);
-    setUser(responseData.user);
-  }
-
-  return responseData;
-};
-
-// Check if user is admin
-export const isAdmin = (): boolean => {
-  const user = getUser();
-  return user?.is_admin === true;
-};
-
-// Google login
-export const googleLogin = async (token: string): Promise<AuthResponse> => {
-  const response = await fetch(API_ENDPOINTS.auth.googleLogin, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ token }),
-  });
-
-  // Handle 429 (Too Many Requests) with better error message
-  if (response.status === 429) {
-    let errorMessage = 'Too many login attempts. Please wait a moment before trying again.';
-    try {
-      const errorData = await response.json();
-      errorMessage = errorData.message || errorData.error || errorMessage;
-    } catch (e) {
-      // If response is not JSON, use default message
-    }
-    throw new Error(errorMessage);
-  }
-
-  // Check if response is JSON before parsing
-  const contentType = response.headers.get('content-type');
-  if (!contentType || !contentType.includes('application/json')) {
-    throw new Error('Server returned an invalid response. Please try again.');
-  }
-
-  const responseData = await response.json();
-
-  if (!response.ok) {
-    throw new Error(responseData.error || responseData.message || 'Google login failed');
-  }
-
-  // Store token and user data
-  if (responseData.access_token) {
-    setToken(responseData.access_token);
-    setUser(responseData.user);
   }
 
   return responseData;

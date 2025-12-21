@@ -1,11 +1,10 @@
-import { Menu, X, LogIn, Moon, Sun, User, Shield } from 'lucide-react';
+import { Menu, X, LogIn, Moon, Sun, User } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import LoginModal from './LoginModal';
-import transparent2 from '../images/TRANSPARENT 2.png';
-import transparent5 from '../images/TRANSPARENT 5.png';
+import logo from '../images/Niko Free Logo.png';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
-import { getUser, isAdmin } from '../services/authService';
+import { getUser } from '../services/authService';
 
 interface NavbarProps {
   onNavigate: (page: string) => void;
@@ -29,19 +28,6 @@ export default function Navbar({ onNavigate, currentPage = 'landing' }: NavbarPr
       setUser(null);
     }
   }, [isAuthenticated]);
-
-  const userIsAdmin = user && isAdmin();
-
-  // Determine which logo to use based on current page and theme
-  const getLogo = () => {
-    if (currentPage === 'landing') {
-      // Home page: always TRANSPARENT 5
-      return transparent5;
-    } else {
-      // Other pages: TRANSPARENT 2 for light mode, TRANSPARENT 5 for dark mode
-      return isDarkMode ? transparent5 : transparent2;
-    }
-  };
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -71,7 +57,7 @@ export default function Navbar({ onNavigate, currentPage = 'landing' }: NavbarPr
               className="flex items-center space-x-2"
             >
               <img 
-                src={getLogo()} 
+                src={logo} 
                 alt="Niko Free Logo" 
                 className="h-6 sm:h-7 md:h-8 lg:h-10 w-auto transform hover:scale-105 transition-transform"
               />
@@ -80,25 +66,21 @@ export default function Navbar({ onNavigate, currentPage = 'landing' }: NavbarPr
             <div className="hidden md:flex space-x-0.5 lg:space-x-1">
               <button
                 onClick={() => onNavigate('landing')}
-                className={`px-2 md:px-3 lg:px-4 py-1 md:py-1.5 lg:py-2 text-xs md:text-sm lg:text-base font-medium transition-all rounded-lg ${
+                className={`px-2 md:px-3 lg:px-4 py-1 md:py-1.5 lg:py-2 text-xs md:text-sm lg:text-base font-medium transition-colors ${
                   currentPage === 'landing' 
-                    ? 'text-white border-b-2 backdrop-blur-md bg-white/10 shadow-lg'
+                    ? 'text-white border-b-2'
                     : currentPage === 'event-detail'
                     ? 'text-gray-700 dark:text-gray-300 border-b-2'
                     : 'text-gray-700 dark:text-gray-300'
                 }`}
                 style={currentPage === 'landing' ? { color: '#ffffff', borderColor: '#27aae2' } : currentPage === 'event-detail' ? { color: '#27aae2', borderColor: '#27aae2' } : {}}
                 onMouseEnter={(e) => { 
-                  if (currentPage === 'landing') {
-                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
-                  } else if (currentPage !== 'event-detail') { 
+                  if (currentPage !== 'landing' && currentPage !== 'event-detail') { 
                     e.currentTarget.style.color = '#27aae2'; 
                   } 
                 }}
                 onMouseLeave={(e) => { 
-                  if (currentPage === 'landing') {
-                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                  } else if (currentPage !== 'event-detail') { 
+                  if (currentPage !== 'landing' && currentPage !== 'event-detail') { 
                     e.currentTarget.style.color = ''; 
                   } 
                 }}
@@ -107,25 +89,21 @@ export default function Navbar({ onNavigate, currentPage = 'landing' }: NavbarPr
               </button>
               <button
                 onClick={() => onNavigate('about')}
-                className={`px-2 md:px-3 lg:px-4 py-1 md:py-1.5 lg:py-2 text-xs md:text-sm lg:text-base font-medium transition-all rounded-lg ${
+                className={`px-2 md:px-3 lg:px-4 py-1 md:py-1.5 lg:py-2 text-xs md:text-sm lg:text-base font-medium transition-colors ${
                   currentPage === 'landing' 
-                    ? 'text-white/90 backdrop-blur-md bg-white/5'
+                    ? 'text-white/90'
                     : currentPage === 'about'
-                    ? 'text-gray-700 dark:text-gray-300 border-2'
+                    ? 'text-gray-700 dark:text-gray-300 border-b-2'
                     : 'text-gray-700 dark:text-gray-300'
                 }`}
                 style={currentPage === 'about' ? { color: '#27aae2', borderColor: '#27aae2' } : {}}
                 onMouseEnter={(e) => { 
-                  if (currentPage === 'landing') {
-                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
-                  } else if (currentPage !== 'about') { 
+                  if (currentPage !== 'about') { 
                     e.currentTarget.style.color = '#27aae2'; 
                   } 
                 }}
                 onMouseLeave={(e) => { 
-                  if (currentPage === 'landing') {
-                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
-                  } else if (currentPage !== 'about') { 
+                  if (currentPage !== 'about') { 
                     e.currentTarget.style.color = ''; 
                   } 
                 }}
@@ -134,25 +112,21 @@ export default function Navbar({ onNavigate, currentPage = 'landing' }: NavbarPr
               </button>
               <button
                 onClick={() => onNavigate('this-weekend')}
-                className={`px-2 md:px-3 lg:px-4 py-1 md:py-1.5 lg:py-2 text-xs md:text-sm lg:text-base font-medium transition-all rounded-lg ${
+                className={`px-2 md:px-3 lg:px-4 py-1 md:py-1.5 lg:py-2 text-xs md:text-sm lg:text-base font-medium transition-colors ${
                   currentPage === 'landing' 
-                    ? 'text-white/90 backdrop-blur-md bg-white/5'
+                    ? 'text-white/90'
                     : currentPage === 'this-weekend'
-                    ? 'text-gray-700 dark:text-gray-300 border-2'
+                    ? 'text-gray-700 dark:text-gray-300 border-b-2'
                     : 'text-gray-700 dark:text-gray-300'
                 }`}
                 style={currentPage === 'this-weekend' ? { color: '#27aae2', borderColor: '#27aae2' } : {}}
                 onMouseEnter={(e) => { 
-                  if (currentPage === 'landing') {
-                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
-                  } else if (currentPage !== 'this-weekend') { 
+                  if (currentPage !== 'this-weekend') { 
                     e.currentTarget.style.color = '#27aae2'; 
                   } 
                 }}
                 onMouseLeave={(e) => { 
-                  if (currentPage === 'landing') {
-                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
-                  } else if (currentPage !== 'this-weekend') { 
+                  if (currentPage !== 'this-weekend') { 
                     e.currentTarget.style.color = ''; 
                   } 
                 }}
@@ -161,25 +135,21 @@ export default function Navbar({ onNavigate, currentPage = 'landing' }: NavbarPr
               </button>
               <button
                 onClick={() => onNavigate('calendar')}
-                className={`px-2 md:px-3 lg:px-4 py-1 md:py-1.5 lg:py-2 text-xs md:text-sm lg:text-base font-medium transition-all rounded-lg ${
+                className={`px-2 md:px-3 lg:px-4 py-1 md:py-1.5 lg:py-2 text-xs md:text-sm lg:text-base font-medium transition-colors ${
                   currentPage === 'landing' 
-                    ? 'text-white/90 backdrop-blur-md bg-white/5'
+                    ? 'text-white/90'
                     : currentPage === 'calendar'
-                    ? 'text-gray-700 dark:text-gray-300 border-2'
+                    ? 'text-gray-700 dark:text-gray-300 border-b-2'
                     : 'text-gray-700 dark:text-gray-300'
                 }`}
                 style={currentPage === 'calendar' ? { color: '#27aae2', borderColor: '#27aae2' } : {}}
                 onMouseEnter={(e) => { 
-                  if (currentPage === 'landing') {
-                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
-                  } else if (currentPage !== 'calendar') { 
+                  if (currentPage !== 'calendar') { 
                     e.currentTarget.style.color = '#27aae2'; 
                   } 
                 }}
                 onMouseLeave={(e) => { 
-                  if (currentPage === 'landing') {
-                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
-                  } else if (currentPage !== 'calendar') { 
+                  if (currentPage !== 'calendar') { 
                     e.currentTarget.style.color = ''; 
                   } 
                 }}
@@ -240,47 +210,27 @@ export default function Navbar({ onNavigate, currentPage = 'landing' }: NavbarPr
                   <User className="w-3 h-3 md:w-4 md:h-4 lg:w-5 lg:h-5" />
                   <span className="hidden lg:inline text-xs md:text-sm">
                     {user.first_name || user.email?.split('@')[0] || 'User'}
-                    {userIsAdmin && (
-                      <span className="ml-1.5 px-1.5 py-0.5 text-[10px] bg-[#27aae2] text-white rounded">Admin</span>
-                    )}
                   </span>
                 </button>
                 {showUserMenu && (
                   <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50 user-menu-container">
                     <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
-                        <span>{user.first_name} {user.last_name}</span>
-                        {userIsAdmin && (
-                          <span className="px-2 py-0.5 text-xs bg-[#27aae2] text-white rounded-full">Admin</span>
-                        )}
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {user.first_name} {user.last_name}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                         {user.email}
                       </p>
                     </div>
-                    {userIsAdmin && (
-                      <button
-                        onClick={() => {
-                          onNavigate('admin-dashboard');
-                          setShowUserMenu(false);
-                        }}
-                        className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center space-x-2"
-                      >
-                        <Shield className="w-4 h-4" />
-                        <span>Admin Dashboard</span>
-                      </button>
-                    )}
-                    {!userIsAdmin && (
-                      <button
-                        onClick={() => {
-                          onNavigate('user-dashboard');
-                          setShowUserMenu(false);
-                        }}
-                        className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                      >
-                        Dashboard
-                      </button>
-                    )}
+                    <button
+                      onClick={() => {
+                        onNavigate('user-dashboard');
+                        setShowUserMenu(false);
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    >
+                      Dashboard
+                    </button>
                     <button
                       onClick={() => {
                         logout();
@@ -300,7 +250,7 @@ export default function Navbar({ onNavigate, currentPage = 'landing' }: NavbarPr
               style={{ background: 'linear-gradient(to right, #27aae2, #1a8ec4)' }}
             >
               <LogIn className="w-3 h-3 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4" />
-              <span>Log In</span>
+              <span>Sign In</span>
             </button>
             )}
           </div>
@@ -404,37 +354,20 @@ export default function Navbar({ onNavigate, currentPage = 'landing' }: NavbarPr
                 <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700">
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">
                     {user.first_name} {user.last_name}
-                    {userIsAdmin && (
-                      <span className="ml-2 px-2 py-0.5 text-xs bg-[#27aae2] text-white rounded-full">Admin</span>
-                    )}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                     {user.email}
                   </p>
                 </div>
-                {userIsAdmin && (
-                  <button
-                    onClick={() => {
-                      onNavigate('admin-dashboard');
-                      setMobileMenuOpen(false);
-                    }}
-                    className="block w-full px-4 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 font-medium text-left flex items-center space-x-2"
-                  >
-                    <Shield className="w-4 h-4" />
-                    <span>Admin Dashboard</span>
-                  </button>
-                )}
-                {!userIsAdmin && (
-                  <button
-                    onClick={() => {
-                      onNavigate('user-dashboard');
-                      setMobileMenuOpen(false);
-                    }}
-                    className="block w-full px-4 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 font-medium text-left"
-                  >
-                    Dashboard
-                  </button>
-                )}
+                <button
+                  onClick={() => {
+                    onNavigate('user-dashboard');
+                    setMobileMenuOpen(false);
+                  }}
+                  className="block w-full px-4 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 font-medium text-left"
+                >
+                  Dashboard
+                </button>
                 <button
                   onClick={() => {
                     logout();
@@ -451,7 +384,7 @@ export default function Navbar({ onNavigate, currentPage = 'landing' }: NavbarPr
               className="block w-full px-4 py-2.5 text-white rounded-lg font-medium"
               style={{ background: 'linear-gradient(to right, #27aae2, #1a8ec4)' }}
             >
-              Log In
+              Sign In
             </button>
             )}
           </div>

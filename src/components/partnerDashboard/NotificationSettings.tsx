@@ -86,13 +86,7 @@ export default function NotificationSettings() {
     }
   ]);
 
-  const [filter, setFilter] = useState<'all' | 'unread' | 'rsvp' | 'application' | 'approval'>('all');
-  // Map notification types to filter buttons
-  const typeFilters = [
-    { id: 'rsvp', label: 'RSVP/Bookings' },
-    { id: 'application', label: 'Event Application Notifications' },
-    { id: 'approval', label: 'Event Approval Notifications' }
-  ];
+  const [filter, setFilter] = useState<'all' | 'unread'>('all');
 
   const getNotificationIcon = (type: Notification['type']) => {
     switch (type) {
@@ -146,17 +140,9 @@ export default function NotificationSettings() {
     setNotifications(notifications.filter(notif => notif.id !== id));
   };
 
-
-  let filteredNotifications: Notification[] = notifications;
-  if (filter === 'unread') {
-    filteredNotifications = notifications.filter(n => !n.read);
-  } else if (filter === 'rsvp') {
-    filteredNotifications = notifications.filter(n => n.type === 'rsvp');
-  } else if (filter === 'application') {
-    filteredNotifications = notifications.filter(n => n.title.toLowerCase().includes('application'));
-  } else if (filter === 'approval') {
-    filteredNotifications = notifications.filter(n => n.title.toLowerCase().includes('approval'));
-  }
+  const filteredNotifications = filter === 'unread' 
+    ? notifications.filter(n => !n.read) 
+    : notifications;
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -181,8 +167,8 @@ export default function NotificationSettings() {
         )}
       </div>
 
-      {/* Filter & Sort Tabs */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-2 inline-flex gap-2 flex-wrap">
+      {/* Filter Tabs */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-2 inline-flex gap-2">
         <button
           onClick={() => setFilter('all')}
           className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
@@ -203,19 +189,6 @@ export default function NotificationSettings() {
         >
           Unread ({unreadCount})
         </button>
-        {typeFilters.map(type => (
-          <button
-            key={type.id}
-            onClick={() => setFilter(type.id as typeof filter)}
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-              filter === type.id
-                ? 'bg-[#27aae2] text-white'
-                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-            }`}
-          >
-            {type.label}
-          </button>
-        ))}
       </div>
 
       {/* Notifications List */}

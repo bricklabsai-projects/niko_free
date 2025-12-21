@@ -12,7 +12,7 @@ export interface PartnerApplicationData {
   location: string;
   category_id: string;
   interests?: string; // JSON string or comma-separated
-  description?: string; // About/business description
+  description?: string; // Business description
   signature_name: string;
   terms_accepted: string; // 'true' or 'false'
   logo?: File;
@@ -54,7 +54,6 @@ export const applyAsPartner = async (
     formData.append('description', data.description);
   }
   
-  // Append logo if provided
   if (data.logo) {
     formData.append('logo', data.logo);
   }
@@ -64,13 +63,13 @@ export const applyAsPartner = async (
     body: formData,
   });
   
-  const result = await response.json();
+  const responseData = await response.json();
   
   if (!response.ok) {
-    throw new Error(result.error || 'Failed to submit application');
+    throw new Error(responseData.error || 'Failed to submit application');
   }
   
-  return result;
+  return responseData;
 };
 
 /**
@@ -94,12 +93,6 @@ export const loginPartner = async (
     throw new Error(data.error || 'Login failed');
   }
   
-  // Store token and partner data
-  if (data.access_token) {
-    localStorage.setItem('niko_free_partner_token', data.access_token);
-    localStorage.setItem('niko_free_partner', JSON.stringify(data.partner));
-  }
-  
   return data;
 };
 
@@ -112,13 +105,14 @@ export const getPartnerEvents = async (status?: string): Promise<any> => {
     throw new Error('Not authenticated');
   }
 
-  let url = `${API_BASE_URL}${API_ENDPOINTS.partner.events}`;
-  if (status) {
-    url += `?status=${status}`;
-  }
+  const url = status && status !== 'all' 
+    ? `${API_BASE_URL}${API_ENDPOINTS.partner.events}?status=${status}`
+    : `${API_BASE_URL}${API_ENDPOINTS.partner.events}`;
 
   const response = await fetch(url, {
+    method: 'GET',
     headers: {
+      'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
     },
   });
@@ -159,16 +153,18 @@ export const createEvent = async (eventData: FormData): Promise<any> => {
 };
 
 /**
- * Get single event
+ * Get single event by ID
  */
-export const getPartnerEvent = async (eventId: number): Promise<any> => {
+export const getEvent = async (eventId: number): Promise<any> => {
   const token = getPartnerToken();
   if (!token) {
     throw new Error('Not authenticated');
   }
 
   const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.partner.event(eventId)}`, {
+    method: 'GET',
     headers: {
+      'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
     },
   });
@@ -181,11 +177,6 @@ export const getPartnerEvent = async (eventId: number): Promise<any> => {
 
   return data;
 };
-
-/**
- * Alias for getPartnerEvent for backward compatibility
- */
-export const getEvent = getPartnerEvent;
 
 /**
  * Update event
@@ -214,17 +205,22 @@ export const updateEvent = async (eventId: number, eventData: FormData): Promise
 };
 
 /**
- * Delete event
+ * Get all attendees for partner
  */
-export const deleteEvent = async (eventId: number): Promise<any> => {
+export const getPartnerAttendees = async (eventId?: number): Promise<any> => {
   const token = getPartnerToken();
   if (!token) {
     throw new Error('Not authenticated');
   }
 
-  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.partner.event(eventId)}`, {
-    method: 'DELETE',
+  const url = eventId
+    ? `${API_BASE_URL}${API_ENDPOINTS.partner.events}/${eventId}/attendees`
+    : `${API_BASE_URL}/api/partners/attendees`;
+
+  const response = await fetch(url, {
+    method: 'GET',
     headers: {
+      'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
     },
   });
@@ -232,23 +228,25 @@ export const deleteEvent = async (eventId: number): Promise<any> => {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.error || 'Failed to delete event');
+    throw new Error(data.error || 'Failed to fetch attendees');
   }
 
   return data;
 };
 
 /**
- * Get partner dashboard data
+ * Get partner verification status
  */
-export const getPartnerDashboard = async (): Promise<any> => {
+export const getPartnerVerification = async (): Promise<any> => {
   const token = getPartnerToken();
   if (!token) {
     throw new Error('Not authenticated');
   }
 
-  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.partner.dashboard}`, {
+  const response = await fetch(`${API_BASE_URL}/api/partners/verification`, {
+    method: 'GET',
     headers: {
+      'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
     },
   });
@@ -256,23 +254,25 @@ export const getPartnerDashboard = async (): Promise<any> => {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch dashboard');
+    throw new Error(data.error || 'Failed to fetch verification status');
   }
 
   return data;
 };
 
 /**
- * Get partner profile
+ * Claim verification badge
  */
-export const getPartnerProfile = async (): Promise<any> => {
+export const claimVerificationBadge = async (): Promise<any> => {
   const token = getPartnerToken();
   if (!token) {
     throw new Error('Not authenticated');
   }
 
-  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.partner.profile}`, {
+  const response = await fetch(`${API_BASE_URL}/api/partners/verification/claim`, {
+    method: 'POST',
     headers: {
+      'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
     },
   });
@@ -280,70 +280,7 @@ export const getPartnerProfile = async (): Promise<any> => {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch profile');
-  }
-
-  return data;
-};
-
-/**
- * Update partner profile
- * Accepts either FormData (for file uploads) or plain object (for JSON updates)
- */
-export const updatePartnerProfile = async (profileData: FormData | Record<string, any>): Promise<any> => {
-  const token = getPartnerToken();
-  if (!token) {
-    throw new Error('Not authenticated');
-  }
-
-  const isFormData = profileData instanceof FormData;
-  
-  const headers: HeadersInit = {
-      'Authorization': `Bearer ${token}`,
-  };
-
-  // Only set Content-Type for JSON, let browser set it for FormData
-  if (!isFormData) {
-    headers['Content-Type'] = 'application/json';
-  }
-
-  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.partner.profile}`, {
-    method: 'PUT',
-    headers,
-    body: isFormData ? profileData : JSON.stringify(profileData),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to update profile');
-  }
-
-  return data;
-};
-
-/**
- * Get partner analytics
- */
-export const getPartnerAnalytics = async (days: number = 30): Promise<any> => {
-  const token = getPartnerToken();
-  if (!token) {
-    throw new Error('Not authenticated');
-  }
-
-  const url = new URL(`${API_BASE_URL}${API_ENDPOINTS.partner.analytics}`);
-  url.searchParams.append('days', days.toString());
-
-  const response = await fetch(url.toString(), {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch analytics');
+    throw new Error(data.error || 'Failed to claim verification badge');
   }
 
   return data;
@@ -352,16 +289,13 @@ export const getPartnerAnalytics = async (days: number = 30): Promise<any> => {
 /**
  * Change partner password
  */
-export const changePartnerPassword = async (
-  currentPassword: string,
-  newPassword: string
-): Promise<any> => {
+export const changePartnerPassword = async (currentPassword: string, newPassword: string): Promise<any> => {
   const token = getPartnerToken();
   if (!token) {
     throw new Error('Not authenticated');
   }
 
-  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.partner.changePassword}`, {
+  const response = await fetch(`${API_BASE_URL}/api/partners/change-password`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -383,22 +317,23 @@ export const changePartnerPassword = async (
 };
 
 /**
- * Get partner token from localStorage
+ * Logout partner
  */
-export const getPartnerToken = (): string | null => {
-  const token = localStorage.getItem('niko_free_partner_token');
-  // Validate token format (JWT should have 3 parts separated by dots)
-  if (token && token.split('.').length !== 3) {
-    // Token is malformed, remove it
-    console.warn('Malformed token detected, removing from storage');
-    removePartnerToken();
-    return null;
-  }
-  return token;
+export const logoutPartner = (): void => {
+  localStorage.removeItem('niko_free_partner_token');
+  localStorage.removeItem('niko_free_partner');
+  // Redirect will be handled by the component
 };
 
 /**
- * Get partner from localStorage
+ * Get partner token from localStorage
+ */
+export const getPartnerToken = (): string | null => {
+  return localStorage.getItem('niko_free_partner_token');
+};
+
+/**
+ * Get partner data from localStorage
  */
 export const getPartner = (): any | null => {
   const partner = localStorage.getItem('niko_free_partner');
@@ -406,58 +341,64 @@ export const getPartner = (): any | null => {
 };
 
 /**
- * Remove partner token and data
+ * Get partner profile
  */
-export const removePartnerToken = () => {
-  localStorage.removeItem('niko_free_partner_token');
-  localStorage.removeItem('niko_free_partner');
-};
-
-/**
- * Logout partner (alias for removePartnerToken)
- */
-export const logoutPartner = () => {
-  removePartnerToken();
-};
-
-/**
- * Promote event
- */
-export const promoteEvent = async (
-  eventId: number,
-  daysCount: number,
-  startDate?: string,
-  endDate?: string
-): Promise<any> => {
+export const getPartnerProfile = async (): Promise<any> => {
   const token = getPartnerToken();
   if (!token) {
     throw new Error('Not authenticated');
   }
 
-  const payload: any = {
-    days_count: daysCount,
-  };
-
-  if (startDate) {
-    payload.start_date = startDate;
-  }
-  if (endDate) {
-    payload.end_date = endDate;
-  }
-
-  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.partner.promoteEvent(eventId)}`, {
-    method: 'POST',
+  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.partner.profile}`, {
+    method: 'GET',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
     },
-    body: JSON.stringify(payload),
   });
 
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.error || 'Failed to promote event');
+    throw new Error(data.error || 'Failed to fetch profile');
+  }
+
+  // The API returns partner data directly (not wrapped in 'partner' key)
+  // Update localStorage with latest data
+  if (data) {
+    localStorage.setItem('niko_free_partner', JSON.stringify(data));
+  }
+
+  return { partner: data };
+};
+
+/**
+ * Update partner profile
+ */
+export const updatePartnerProfile = async (profileData: any): Promise<any> => {
+  const token = getPartnerToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.partner.profile}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(profileData),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to update profile');
+  }
+
+  // Update localStorage with latest data
+  if (data.partner) {
+    localStorage.setItem('niko_free_partner', JSON.stringify(data.partner));
   }
 
   return data;
@@ -498,337 +439,10 @@ export const uploadPartnerLogo = async (file: File): Promise<any> => {
 };
 
 /**
- * Update promo code
- */
-export const updatePromoCode = async (
-  eventId: number,
-  promoCodeId: number,
-  promoCodeData: {
-    code?: string;
-    discount_type?: string;
-    discount_value?: number;
-    max_uses?: number | null;
-    max_uses_per_user?: number;
-    valid_from?: string | null;
-    valid_until?: string | null;
-    is_active?: boolean;
-  }
-): Promise<any> => {
-  const token = getPartnerToken();
-  
-  if (!token) {
-    throw new Error('Not authenticated');
-  }
-
-  const response = await fetch(
-    `${API_BASE_URL}/api/partners/events/${eventId}/promo-codes/${promoCodeId}`,
-    {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(promoCodeData),
-    }
-  );
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to update promo code');
-  }
-
-  return data;
-};
-
-/**
- * Delete promo code
- */
-export const deletePromoCode = async (
-  eventId: number,
-  promoCodeId: number
-): Promise<any> => {
-  const token = getPartnerToken();
-  
-  if (!token) {
-    throw new Error('Not authenticated');
-  }
-
-  const response = await fetch(
-    `${API_BASE_URL}/api/partners/events/${eventId}/promo-codes/${promoCodeId}`,
-    {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to delete promo code');
-  }
-
-  return data;
-};
-
-/**
- * Send support message
- */
-export const sendSupportMessage = async (
-  subject: string,
-  message: string
-): Promise<any> => {
-  const token = getPartnerToken();
-  
-  if (!token) {
-    throw new Error('Not authenticated');
-  }
-
-  const response = await fetch(
-    `${API_BASE_URL}/api/partners/support`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        subject,
-        message,
-      }),
-    }
-  );
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to send support message');
-  }
-
-  return data;
-};
-
-/**
- * Get partner attendees
- */
-export const getPartnerAttendees = async (
-  eventId?: number,
-  page: number = 1,
-  perPage: number = 50
-): Promise<any> => {
-  const token = getPartnerToken();
-  
-  if (!token) {
-    throw new Error('Not authenticated');
-  }
-
-  let url = `${API_BASE_URL}/api/partners/attendees?page=${page}&per_page=${perPage}`;
-  if (eventId) {
-    url += `&event_id=${eventId}`;
-  }
-
-  const response = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch attendees');
-  }
-
-  return data;
-};
-
-/**
- * Get team members
- */
-export const getTeamMembers = async (): Promise<any> => {
-  const token = getPartnerToken();
-  
-  if (!token) {
-    throw new Error('Not authenticated');
-  }
-
-  const response = await fetch(`${API_BASE_URL}/api/partners/team`, {
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch team members');
-  }
-
-  return data;
-};
-
-/**
- * Add team member
- */
-export const addTeamMember = async (
-  teamMemberData: {
-    name: string;
-    email: string;
-    phone?: string;
-    role?: string;
-    permissions?: string[];
-  }
-): Promise<any> => {
-  const token = getPartnerToken();
-  
-  if (!token) {
-    throw new Error('Not authenticated');
-  }
-
-  const response = await fetch(`${API_BASE_URL}/api/partners/team`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(teamMemberData),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to add team member');
-  }
-
-  return data;
-};
-
-/**
- * Remove team member
- */
-export const removeTeamMember = async (memberId: number): Promise<any> => {
-  const token = getPartnerToken();
-  
-  if (!token) {
-    throw new Error('Not authenticated');
-  }
-
-  const response = await fetch(`${API_BASE_URL}/api/partners/team/${memberId}`, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to remove team member');
-  }
-
-  return data;
-};
-
-/**
- * Get partner verification status
- */
-export const getPartnerVerification = async (): Promise<any> => {
-  const token = getPartnerToken();
-  
-  if (!token) {
-    throw new Error('Not authenticated');
-  }
-
-  const response = await fetch(`${API_BASE_URL}/api/partners/verification`, {
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch verification status');
-  }
-
-  return data;
-};
-
-/**
- * Claim verification badge
- */
-export const claimVerificationBadge = async (): Promise<any> => {
-  const token = getPartnerToken();
-  
-  if (!token) {
-    throw new Error('Not authenticated');
-  }
-
-  const response = await fetch(`${API_BASE_URL}/api/partners/verification/claim`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to claim verification badge');
-  }
-
-  return data;
-};
-
-/**
- * Request payout
- */
-export const requestPayout = async (
-  payoutData: {
-    amount: number;
-    payout_method: 'mpesa' | 'bank_transfer';
-    phone_number?: string;
-  }
-): Promise<any> => {
-  const token = getPartnerToken();
-  
-  if (!token) {
-    throw new Error('Not authenticated');
-  }
-
-  const response = await fetch(`${API_BASE_URL}/api/partners/payouts`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(payoutData),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to request payout');
-  }
-
-  return data;
-};
-
-/**
  * Delete partner account
- * This will permanently delete the account and all associated data
  */
 export const deletePartnerAccount = async (): Promise<any> => {
   const token = getPartnerToken();
-  
   if (!token) {
     throw new Error('Not authenticated');
   }
@@ -837,7 +451,7 @@ export const deletePartnerAccount = async (): Promise<any> => {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
+      'Authorization': `Bearer ${token}`,
     },
   });
 
@@ -847,5 +461,9 @@ export const deletePartnerAccount = async (): Promise<any> => {
     throw new Error(data.error || 'Failed to delete account');
   }
 
+  // Clear localStorage after successful deletion
+  logoutPartner();
+
   return data;
 };
+

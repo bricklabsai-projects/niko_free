@@ -6,7 +6,7 @@ from app.models.ticket import TicketType, Booking, Ticket, PromoCode
 from app.models.payment import Payment
 from app.utils.decorators import user_required, partner_required
 from app.utils.qrcode_generator import generate_qr_code
-from app.utils.email import send_booking_confirmation_email
+from app.utils.email import send_booking_confirmation_email, send_booking_cancellation_email, send_booking_cancellation_to_partner_email
 
 bp = Blueprint('tickets', __name__)
 
@@ -266,6 +266,19 @@ def cancel_booking(current_user, booking_id):
     # TODO: Process refund if paid
     
     db.session.commit()
+    
+    # Send cancellation emails
+    try:
+        send_booking_cancellation_email(current_user, booking, booking.event)
+    except Exception as email_error:
+        current_app.logger.warning(f'Failed to send cancellation email to user: {str(email_error)}')
+    
+    try:
+        partner = booking.event.organizer if booking.event else None
+        if partner:
+            send_booking_cancellation_to_partner_email(partner, booking, booking.event)
+    except Exception as email_error:
+        current_app.logger.warning(f'Failed to send cancellation email to partner: {str(email_error)}')
     
     return jsonify({
         'message': 'Booking cancelled successfully'

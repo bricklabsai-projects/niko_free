@@ -60,20 +60,17 @@ export default function PartnerVerification() {
     );
   }
 
-  // Use real data from API - use actual events count from events array
-  const eventsHosted = verificationData?.events?.length || 0;
+  // Use real data from API
+  const eventsHosted = verificationData?.verification?.events_hosted || 0;
   const totalBookings = verificationData?.verification?.total_bookings || 0;
   const eventsRequired = verificationData?.verification?.events_required || 10;
   const bookingsRequired = verificationData?.verification?.bookings_required || 500;
-  
-  // Calculate verification status based on frontend logic (not backend is_verified field)
-  const isEligible = eventsHosted >= eventsRequired || totalBookings >= bookingsRequired;
-  const isVerified = eventsHosted >= eventsRequired || totalBookings >= bookingsRequired;
+  const isEligible = verificationData?.verification?.is_eligible || false;
+  const isVerified = verificationData?.verification?.is_verified || false;
   const partnerName = verificationData?.partner?.business_name || 'Partner';
 
-  // Calculate progress percentages based on actual data
-  const eventsProgress = (eventsHosted / eventsRequired) * 100;
-  const bookingsProgress = (totalBookings / bookingsRequired) * 100;
+  const eventsProgress = verificationData?.verification?.events_progress || 0;
+  const bookingsProgress = verificationData?.verification?.bookings_progress || 0;
 
   const benefits = [
     {
